@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "nucleoid_creator_tools",
+  "version": "${version}",
+  "name": "Nucleoid Creator Tools",
+  "description": "Tools for creators to make minigame content for the Nucleoid ecosystem",
+  "authors": ["Nucleoid Contributors"],
+  "license": "LGPLv3",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["xyz.nucleoid.creator_tools.CreatorTools"]
+  },
+  "mixins": ["creator_tools.mixins.json"],
+  "accessWidener": "creator_tools.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.9.1",
+    "fabric": "*",
+    "minecraft": "1.17.x",
+    "java": ">=16"
+  }
+}
