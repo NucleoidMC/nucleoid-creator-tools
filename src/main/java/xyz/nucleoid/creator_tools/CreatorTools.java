@@ -2,9 +2,12 @@ package xyz.nucleoid.creator_tools;
 
 import com.google.common.reflect.Reflection;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import xyz.nucleoid.creator_tools.command.MapManageCommand;
+import xyz.nucleoid.creator_tools.command.MapMetadataCommand;
 import xyz.nucleoid.creator_tools.item.CreatorToolsItems;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 
@@ -16,6 +19,11 @@ public final class CreatorTools implements ModInitializer {
     @Override
     public void onInitialize() {
         Reflection.initialize(CreatorToolsItems.class);
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+            MapManageCommand.register(dispatcher);
+            MapMetadataCommand.register(dispatcher);
+        });
 
         ServerTickEvents.START_SERVER_TICK.register(server -> {
             MapWorkspaceManager.get(server).tick();
