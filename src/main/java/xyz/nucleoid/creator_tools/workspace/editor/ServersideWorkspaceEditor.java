@@ -1,8 +1,9 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
 import it.unimi.dsi.fastutil.HashCommon;
-import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
@@ -17,6 +18,8 @@ import xyz.nucleoid.creator_tools.workspace.trace.PartialRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.RegionTraceMode;
 import xyz.nucleoid.map_templates.BlockBounds;
 
+import java.util.UUID;
+
 public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private static final int PARTICLE_INTERVAL = 10;
 
@@ -28,7 +31,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private BlockBounds traced;
 
     private final ArmorStandEntity markerEntity;
-    private final Int2IntMap markerTagIds = new Int2IntOpenHashMap();
+    private final Int2ObjectMap<Marker> regionToMarker = new Int2ObjectOpenHashMap<>();
 
     private int nextMarkerId = -1;
 
@@ -43,8 +46,6 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         markerEntity.setMarker(true);
         markerEntity.setCustomNameVisible(true);
         this.markerEntity = markerEntity;
-
-        this.markerTagIds.defaultReturnValue(Integer.MAX_VALUE);
     }
 
     @Override
@@ -103,46 +104,45 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
     @Override
     public void addRegion(WorkspaceRegion region) {
-        int markerEntityId = this.nextMarkerId();
-
+        var marker = this.nextMarkerIds();
         var markerPos = region.bounds().center();
 
-        var markerEntity = this.markerEntity;
-        markerEntity.setId(markerEntityId);
+        var markerEntity = marker.applyTo(this.markerEntity);
         markerEntity.setPos(markerPos.x, markerPos.y, markerPos.z);
         markerEntity.setCustomName(new LiteralText(region.marker()));
 
         var networkHandler = this.player.networkHandler;
         networkHandler.sendPacket(markerEntity.createSpawnPacket());
-        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(markerEntityId, markerEntity.getDataTracker(), true));
+        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
 
-        this.markerTagIds.put(region.runtimeId(), markerEntityId);
+        this.regionToMarker.put(region.runtimeId(), marker);
     }
 
     @Override
     public void removeRegion(WorkspaceRegion region) {
-        int markerEntityId = this.markerTagIds.remove(region.runtimeId());
-        if (markerEntityId != Integer.MAX_VALUE) {
-            this.player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(markerEntityId));
+        var marker = this.regionToMarker.remove(region.runtimeId());
+        if (marker != null) {
+            this.player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(marker.id()));
         }
     }
 
     @Override
     public void updateRegion(WorkspaceRegion lastRegion, WorkspaceRegion newRegion) {
-        int markerEntityId = this.markerTagIds.get(newRegion.runtimeId());
-        if (markerEntityId == Integer.MAX_VALUE) {
+        var marker = this.regionToMarker.get(newRegion.runtimeId());
+        if (marker == null) {
             return;
         }
 
-        var markerEntity = this.markerEntity;
-        markerEntity.setId(markerEntityId);
+        var markerEntity = marker.applyTo(this.markerEntity);
         markerEntity.setCustomName(new LiteralText(newRegion.marker()));
 
-        this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(markerEntityId, markerEntity.getDataTracker(), true));
+        this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
     }
 
-    private int nextMarkerId() {
-        return this.nextMarkerId--;
+    private Marker nextMarkerIds() {
+        int id = this.nextMarkerId--;
+        var uuid = UUID.randomUUID();
+        return new Marker(id, uuid);
     }
 
     private void renderWorkspaceBounds() {
@@ -183,5 +183,13 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
     private static int colorForRegionMarker(String marker) {
         return HashCommon.mix(marker.hashCode()) & 0xFFFFFF;
+    }
+
+    static final record Marker(int id, UUID uuid) {
+        <T extends Entity> T applyTo(T entity) {
+            entity.setId(this.id);
+            entity.setUuid(this.uuid);
+            return entity;
+        }
     }
 }
