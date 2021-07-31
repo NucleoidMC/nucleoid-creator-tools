@@ -9,6 +9,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
+import net.minecraft.world.GameRules;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionType;
@@ -169,8 +170,37 @@ public final class MapWorkspaceManager extends PersistentState {
     }
 
     private RuntimeWorldHandle getOrCreateDimension(Identifier identifier, RuntimeWorldConfig config) {
+        this.applyDefaultsToConfig(config);
+
         var dimensionId = new Identifier(identifier.getNamespace(), "workspace_" + identifier.getPath());
         return Fantasy.get(this.server).getOrOpenPersistentWorld(dimensionId, config);
+    }
+
+    private void applyDefaultsToConfig(RuntimeWorldConfig config) {
+        // TODO: fantasy: make all commands channel through the correct world
+        //        + then serialize the runtimeworldconfig for each workspace
+        config.setDifficulty(this.server.getOverworld().getDifficulty());
+
+        var serverRules = MapWorkspaceManager.this.server.getGameRules();
+        var workspaceRules = config.getGameRules();
+
+        GameRules.accept(new GameRules.Visitor() {
+            @Override
+            public void visitInt(GameRules.Key<GameRules.IntRule> key, GameRules.Type<GameRules.IntRule> type) {
+                var value = serverRules.get(key);
+                if (!workspaceRules.contains(key)) {
+                    workspaceRules.set(key, value.get());
+                }
+            }
+
+            @Override
+            public void visitBoolean(GameRules.Key<GameRules.BooleanRule> key, GameRules.Type<GameRules.BooleanRule> type) {
+                var value = serverRules.get(key);
+                if (!workspaceRules.contains(key)) {
+                    workspaceRules.set(key, value.get());
+                }
+            }
+        });
     }
 
     private RuntimeWorldConfig createDefaultConfig() {
