@@ -9,9 +9,9 @@ import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
 public enum RegionTraceMode {
-    OFFSET(new TranslatableText("item.creator_tools.add_region.trace_mode.offset")),
-    EXACT(new TranslatableText("item.creator_tools.add_region.trace_mode.exact")),
-    AT_FEET(new TranslatableText("item.creator_tools.add_region.trace_mode.at_feet"));
+    OFFSET(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.offset")),
+    EXACT(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.exact")),
+    AT_FEET(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.at_feet"));
 
     private final Text name;
 

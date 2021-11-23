@@ -16,7 +16,7 @@ import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 public final class ChunkGeneratorArgument {
     public static final DynamicCommandExceptionType GENERATOR_NOT_FOUND = new DynamicCommandExceptionType(arg ->
-            new TranslatableText("text.creator_tools.chunk_generator.generator_not_found", arg)
+            new TranslatableText("text.nucleoid_creator_tools.chunk_generator.generator_not_found", arg)
     );
 
     public static RequiredArgumentBuilder<ServerCommandSource, Identifier> argument(String name) {

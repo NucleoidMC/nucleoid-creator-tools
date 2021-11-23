@@ -89,7 +89,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
                 tracing.setTarget(pos);
                 this.traced = tracing.asComplete();
                 this.tracing = null;
-                this.player.sendMessage(new TranslatableText("item.creator_tools.add_region.trace_mode.commit"), true);
+                this.player.sendMessage(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.commit"), true);
             } else {
                 this.tracing = new PartialRegion(pos);
             }
@@ -99,7 +99,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private void changeTraceMode() {
         var nextMode = this.traceMode.next();
         this.traceMode = nextMode;
-        this.player.sendMessage(new TranslatableText("item.creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
+        this.player.sendMessage(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
     }
 
     @Override

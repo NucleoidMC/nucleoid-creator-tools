@@ -44,19 +44,19 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 public final class MapManageCommand {
     public static final SimpleCommandExceptionType MAP_NOT_HERE = new SimpleCommandExceptionType(
-            new TranslatableText("text.creator_tools.map.map_not_here")
+            new TranslatableText("text.nucleoid_creator_tools.map.map_not_here")
     );
 
     public static final DynamicCommandExceptionType MAP_ALREADY_EXISTS = new DynamicCommandExceptionType(arg ->
-            new TranslatableText("text.creator_tools.map.open.map_already_exists", arg)
+            new TranslatableText("text.nucleoid_creator_tools.map.open.map_already_exists", arg)
     );
 
     public static final SimpleCommandExceptionType MAP_MISMATCH = new SimpleCommandExceptionType(
-            new TranslatableText("text.creator_tools.map.delete.map_mismatch")
+            new TranslatableText("text.nucleoid_creator_tools.map.delete.map_mismatch")
     );
 
     public static final DynamicCommandExceptionType INVALID_GENERATOR_CONFIG = new DynamicCommandExceptionType(arg ->
-            new TranslatableText("text.creator_tools.map.open.invalid_generator_config", arg)
+            new TranslatableText("text.nucleoid_creator_tools.map.open.invalid_generator_config", arg)
     );
 
     // @formatter:off
@@ -150,13 +150,13 @@ public final class MapManageCommand {
                 }
 
                 source.sendFeedback(
-                        new TranslatableText("text.creator_tools.map.open.success",
+                        new TranslatableText("text.nucleoid_creator_tools.map.open.success",
                                 identifier,
-                                new TranslatableText("text.creator_tools.map.open.join_command", identifier).formatted(Formatting.GRAY)),
+                                new TranslatableText("text.nucleoid_creator_tools.map.open.join_command", identifier).formatted(Formatting.GRAY)),
                         false
                 );
             } catch (Throwable throwable) {
-                source.sendError(new TranslatableText("text.creator_tools.map.open.error"));
+                source.sendError(new TranslatableText("text.nucleoid_creator_tools.map.open.error"));
                 CreatorTools.LOGGER.error("Failed to open workspace", throwable);
             }
         });
@@ -207,7 +207,7 @@ public final class MapManageCommand {
 
         workspace.setOrigin(origin);
 
-        source.sendFeedback(new TranslatableText("text.creator_tools.map.origin.set"), false);
+        source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.origin.set"), false);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -218,7 +218,7 @@ public final class MapManageCommand {
         var workspace = MapWorkspaceArgument.get(context, "workspace");
         var bounds = workspace.getBounds();
 
-        source.sendFeedback(new TranslatableText("text.creator_tools.map.bounds.get", getClickablePosText(bounds.min()), getClickablePosText(bounds.max())), false);
+        source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.bounds.get", getClickablePosText(bounds.min()), getClickablePosText(bounds.max())), false);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -232,7 +232,7 @@ public final class MapManageCommand {
 
         workspace.setBounds(BlockBounds.of(min, max));
 
-        source.sendFeedback(new TranslatableText("text.creator_tools.map.bounds.set"), false);
+        source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.bounds.set"), false);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -258,9 +258,9 @@ public final class MapManageCommand {
         }
 
         source.sendFeedback(
-                new TranslatableText("text.creator_tools.map.join.success",
+                new TranslatableText("text.nucleoid_creator_tools.map.join.success",
                         workspace.getIdentifier(),
-                        new TranslatableText("text.creator_tools.map.join.leave_command").formatted(Formatting.GRAY)),
+                        new TranslatableText("text.nucleoid_creator_tools.map.join.leave_command").formatted(Formatting.GRAY)),
                 false
         );
 
@@ -288,7 +288,7 @@ public final class MapManageCommand {
         }
 
         source.sendFeedback(
-                new TranslatableText("text.creator_tools.map.leave.success", workspace.getIdentifier()),
+                new TranslatableText("text.nucleoid_creator_tools.map.leave.success", workspace.getIdentifier()),
                 false
         );
 
@@ -305,9 +305,9 @@ public final class MapManageCommand {
         var bounds = template.getBounds();
         if (bounds.min().getY() < 0 || bounds.max().getY() > 255) {
             source.sendFeedback(
-                    new TranslatableText("text.creator_tools.map.export.vertical_bounds_warning.line.1").append("\n")
-                            .append(new TranslatableText("text.creator_tools.map.export.vertical_bounds_warning.line.2")).append("\n")
-                            .append(new TranslatableText("text.creator_tools.map.export.vertical_bounds_warning.line.3"))
+                    new TranslatableText("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.1").append("\n")
+                            .append(new TranslatableText("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.2")).append("\n")
+                            .append(new TranslatableText("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.3"))
                             .formatted(Formatting.YELLOW),
                     false
             );
@@ -317,10 +317,10 @@ public final class MapManageCommand {
 
         future.handle((v, throwable) -> {
             if (throwable == null) {
-                source.sendFeedback(new TranslatableText("text.creator_tools.map.export.success", workspace.getIdentifier()), false);
+                source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.export.success", workspace.getIdentifier()), false);
             } else {
                 CreatorTools.LOGGER.error("Failed to export map to '{}'", workspace.getIdentifier(), throwable);
-                source.sendError(new TranslatableText("text.creator_tools.map.export.error"));
+                source.sendError(new TranslatableText("text.nucleoid_creator_tools.map.export.error"));
             }
             return null;
         });
@@ -341,9 +341,9 @@ public final class MapManageCommand {
 
         MutableText message;
         if (workspaceManager.delete(workspace)) {
-            message = new TranslatableText("text.creator_tools.map.delete.success", workspace.getIdentifier());
+            message = new TranslatableText("text.nucleoid_creator_tools.map.delete.success", workspace.getIdentifier());
         } else {
-            message = new TranslatableText("text.creator_tools.map.delete.error", workspace.getIdentifier());
+            message = new TranslatableText("text.nucleoid_creator_tools.map.delete.error", workspace.getIdentifier());
         }
 
         source.sendFeedback(message.formatted(Formatting.RED), false);
@@ -367,7 +367,7 @@ public final class MapManageCommand {
 
         future.thenAcceptAsync(template -> {
             if (template != null) {
-                source.sendFeedback(new TranslatableText("text.creator_tools.map.import.importing"), false);
+                source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.import.importing"), false);
 
                 var workspace = workspaceManager.open(toWorkspaceId);
 
@@ -383,12 +383,12 @@ public final class MapManageCommand {
                 try {
                     var placer = new MapTemplatePlacer(template);
                     placer.placeAt(workspace.getWorld(), origin);
-                    source.sendFeedback(new TranslatableText("text.creator_tools.map.import.success", toWorkspaceId), false);
+                    source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.import.success", toWorkspaceId), false);
                 } catch (Exception e) {
                     CreatorTools.LOGGER.error("Failed to place template into world!", e);
                 }
             } else {
-                source.sendError(new TranslatableText("text.creator_tools.map.import.no_template_found", location));
+                source.sendError(new TranslatableText("text.nucleoid_creator_tools.map.import.no_template_found", location));
             }
         }, server);
 
