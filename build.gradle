@@ -1,10 +1,10 @@
 plugins {
-  id 'fabric-loom' version '0.8-SNAPSHOT'
+  id 'fabric-loom' version '0.10-SNAPSHOT'
   id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 
 archivesBaseName = project.archives_base_name
 version = project.mod_version
@@ -26,13 +26,13 @@ dependencies {
 
   modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-  modImplementation include('eu.pb4:polymer:0.1.7+1.17.1')
-  modImplementation include('fr.catcore:server-translations-api:1.4.6+1.17')
-  modImplementation include('xyz.nucleoid:fantasy:0.4.2+1.17')
+  modImplementation include('eu.pb4:polymer:0.2.0-beta.16+1.18.1')
+  modImplementation include('fr.catcore:server-translations-api:1.4.8+1.18-pre1')
+  modImplementation include('xyz.nucleoid:fantasy:0.4.3+1.18-pre6')
 
-  modImplementation include('xyz.nucleoid:map-templates:0.1.2+1.17.1')
+  modImplementation include('xyz.nucleoid:map-templates:0.1.3+1.18-pre6')
 
-  modRuntime("supercoder79:databreaker:0.2.7") {
+  modRuntime("supercoder79:databreaker:0.2.8") {
     exclude module: "fabric-loader"
   }
 }
