@@ -26,7 +26,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private final ServerPlayerEntity player;
     private final MapWorkspace workspace;
 
-    private RegionTraceMode traceMode = RegionTraceMode.OFFSET;
+    private RegionTraceMode traceMode = RegionTraceMode.EXACT;
     private PartialRegion tracing;
     private BlockBounds traced;
 
