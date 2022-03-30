@@ -24,6 +24,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.dynamic.RegistryOps;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.world.dimension.DimensionType;
 import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.MapTemplateExporter;
@@ -166,8 +167,9 @@ public final class MapManageCommand {
 
     private static int openWorkspaceLikeDimension(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         var dimension = DimensionOptionsArgument.get(context, "dimension");
+        var reg = context.getSource().getServer().getRegistryManager().get(Registry.DIMENSION_TYPE_KEY);
         var worldConfig = new RuntimeWorldConfig()
-                .setDimensionType(dimension.getDimensionType())
+                .setDimensionType(reg.getEntry(reg.getKey(dimension.getDimensionTypeSupplier().value()).get()).get())
                 .setGenerator(dimension.getChunkGenerator());
 
         return MapManageCommand.openWorkspace(context, worldConfig);
@@ -180,7 +182,6 @@ public final class MapManageCommand {
         var server = context.getSource().getServer();
         var ops = RegistryOps.of(
                 NbtOps.INSTANCE,
-                server.getResourceManager(),
                 server.getRegistryManager()
         );
 
