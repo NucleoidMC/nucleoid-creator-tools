@@ -21,9 +21,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.visitor.NbtTextFormatter;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
@@ -44,25 +42,25 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 public final class MapMetadataCommand {
     public static final DynamicCommandExceptionType ENTITY_TYPE_NOT_FOUND = new DynamicCommandExceptionType(arg ->
-            new TranslatableText("text.nucleoid_creator_tools.map.region.entity.filter.entity_type_not_found", arg)
+            Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.entity_type_not_found", arg)
     );
 
     public static final SimpleCommandExceptionType MAP_NOT_HERE = MapManageCommand.MAP_NOT_HERE;
 
     public static final SimpleCommandExceptionType NO_REGION_READY = new SimpleCommandExceptionType(
-            new TranslatableText("text.nucleoid_creator_tools.map.region.commit.no_region_ready")
+            Text.translatable("text.nucleoid_creator_tools.map.region.commit.no_region_ready")
     );
 
     private static final SimpleCommandExceptionType MERGE_FAILED_EXCEPTION = new SimpleCommandExceptionType(
-            new TranslatableText("commands.data.merge.failed")
+            Text.translatable("commands.data.merge.failed")
     );
 
     private static final SimpleCommandExceptionType GET_MULTIPLE_EXCEPTION = new SimpleCommandExceptionType(
-            new TranslatableText("commands.data.get.multiple")
+            Text.translatable("commands.data.get.multiple")
     );
 
     private static final DynamicCommandExceptionType MODIFY_EXPECTED_OBJECT_EXCEPTION = new DynamicCommandExceptionType(
-            arg -> new TranslatableText("commands.data.modify.expected_object", arg)
+            arg -> Text.translatable("commands.data.modify.expected_object", arg)
     );
 
     private static final NbtTextFormatter NBT_FORMATTER = new NbtTextFormatter("  ", 0);
@@ -204,7 +202,7 @@ public final class MapMetadataCommand {
 
         var map = getWorkspaceForSource(source);
         map.addRegion(marker, BlockBounds.of(min, max), data);
-        source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.region.add.success", marker)), false);
+        source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.region.add.success", marker)), false);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -227,7 +225,7 @@ public final class MapMetadataCommand {
             map.addRegion(newMarker, region.bounds(), region.data());
         }
 
-        source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.region.rename.success", regions.size())), false);
+        source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.region.rename.success", regions.size())), false);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -242,13 +240,13 @@ public final class MapMetadataCommand {
                 .filter(region -> region.marker().equals(marker))
                 .collect(Collectors.toList());
 
-        source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.region.bounds.get.header", regions.size()).formatted(Formatting.BOLD), false);
+        source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.region.bounds.get.header", regions.size()).formatted(Formatting.BOLD), false);
 
         for (var region : regions) {
             var minText = MapManageCommand.getClickablePosText(region.bounds().min());
             var maxText = MapManageCommand.getClickablePosText(region.bounds().max());
 
-            source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.entry", new TranslatableText("text.nucleoid_creator_tools.map.region.bounds.get", minText, maxText)), false);
+            source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.entry", Text.translatable("text.nucleoid_creator_tools.map.region.bounds.get", minText, maxText)), false);
         }
 
         return Command.SINGLE_SUCCESS;
@@ -256,7 +254,7 @@ public final class MapMetadataCommand {
 
     private static boolean executeRegionDataGet(CommandContext<ServerCommandSource> context, MapWorkspace map, WorkspaceRegion region) {
         var message = withMapPrefix(map,
-                new TranslatableText("text.nucleoid_creator_tools.map.region.data.get", region.marker(), NBT_FORMATTER.apply(region.data()))
+                Text.translatable("text.nucleoid_creator_tools.map.region.data.get", region.marker(), NBT_FORMATTER.apply(region.data()))
         );
         context.getSource().sendFeedback(message, false);
         return false;
@@ -299,7 +297,7 @@ public final class MapMetadataCommand {
             map.removeRegion(region);
         }
 
-        source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.region.remove.success", regions.size())), false);
+        source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.region.remove.success", regions.size())), false);
 
         return Command.SINGLE_SUCCESS;
     }
@@ -327,7 +325,7 @@ public final class MapMetadataCommand {
 
             var workspace = getWorkspaceForSource(source);
             workspace.addRegion(marker, BlockBounds.of(min, max), data);
-            source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.region.add.success.excited", marker), false);
+            source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.region.add.success.excited", marker), false);
         }
 
         return Command.SINGLE_SUCCESS;
@@ -346,9 +344,9 @@ public final class MapMetadataCommand {
                 .count();
 
         if (result == 0) {
-            source.sendError(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.add.error", map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.add.error", map.getIdentifier()));
         } else {
-            source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.add.success", result, map.getIdentifier()),
+            source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.region.entity.add.success", result, map.getIdentifier()),
                     false);
         }
 
@@ -367,9 +365,9 @@ public final class MapMetadataCommand {
                 .count();
 
         if (result == 0) {
-            source.sendError(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.remove.error", map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.remove.error", map.getIdentifier()));
         } else {
-            source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.remove.success", result, map.getIdentifier()),
+            source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.region.entity.remove.success", result, map.getIdentifier()),
                     false);
         }
 
@@ -383,9 +381,9 @@ public final class MapMetadataCommand {
         var type = getEntityType(context);
 
         if (!map.addEntityType(type.getRight())) {
-            source.sendError(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.filter.type.add.already_present", type.getLeft(), map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.already_present", type.getLeft(), map.getIdentifier()));
         } else {
-            source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.filter.type.add.success", type.getLeft(), map.getIdentifier()), false);
+            source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.success", type.getLeft(), map.getIdentifier()), false);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -397,9 +395,9 @@ public final class MapMetadataCommand {
         var type = getEntityType(context);
 
         if (!map.removeEntityType(type.getRight())) {
-            source.sendError(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.not_present", type.getLeft(), map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.not_present", type.getLeft(), map.getIdentifier()));
         } else {
-            source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.success", type.getLeft(), map.getIdentifier()), false);
+            source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.success", type.getLeft(), map.getIdentifier()), false);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -410,7 +408,7 @@ public final class MapMetadataCommand {
         var data = NbtCompoundArgumentType.getNbtCompound(context, "nbt");
         var originalData = map.getData();
         map.setData(originalData.copy().copyFrom(data));
-        source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.data.merge.success")), false);
+        source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.data.merge.success")), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -451,7 +449,7 @@ public final class MapMetadataCommand {
         }
 
         map.setData(map.getData());
-        source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.data.merge.success")), false);
+        source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.data.merge.success")), false);
 
         return mergeCount;
     }
@@ -459,7 +457,7 @@ public final class MapMetadataCommand {
     private static int executeDataGet(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         var source = context.getSource();
         var map = getWorkspaceForSource(context.getSource());
-        source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.data.get",
+        source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.data.get",
                         getMapPrefix(map), NBT_FORMATTER.apply(map.getData())),
                 false);
         return Command.SINGLE_SUCCESS;
@@ -469,7 +467,7 @@ public final class MapMetadataCommand {
         var source = context.getSource();
         var map = getWorkspaceForSource(context.getSource());
         var path = NbtPathArgumentType.getNbtPath(context, "path");
-        source.sendFeedback(new TranslatableText("text.nucleoid_creator_tools.map.data.get.at",
+        source.sendFeedback(Text.translatable("text.nucleoid_creator_tools.map.data.get.at",
                         map.getIdentifier().toString(), path.toString(),
                         NBT_FORMATTER.apply(getTagAt(map.getData(), path))),
                 false);
@@ -481,7 +479,7 @@ public final class MapMetadataCommand {
         var map = getWorkspaceForSource(context.getSource());
         if (path == null) {
             map.setData(new NbtCompound());
-            source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.data.remove.success")),
+            source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.data.remove.success")),
                     false);
         } else {
             int count = path.remove(map.getData());
@@ -489,7 +487,7 @@ public final class MapMetadataCommand {
                 throw MERGE_FAILED_EXCEPTION.create();
             } else {
                 source.sendFeedback(withMapPrefix(map,
-                        new TranslatableText("text.nucleoid_creator_tools.map.data.remove.at.success", path.toString())),
+                        Text.translatable("text.nucleoid_creator_tools.map.data.remove.at.success", path.toString())),
                         false);
             }
         }
@@ -501,7 +499,7 @@ public final class MapMetadataCommand {
         var map = getWorkspaceForSource(context.getSource());
         var data = NbtCompoundArgumentType.getNbtCompound(context, "nbt");
         map.setData(data);
-        source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.data.set.success")), false);
+        source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.data.set.success")), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -515,7 +513,7 @@ public final class MapMetadataCommand {
             throw MERGE_FAILED_EXCEPTION.create();
         } else {
             map.setData(data);
-            source.sendFeedback(withMapPrefix(map, new TranslatableText("text.nucleoid_creator_tools.map.data.set.at.success",
+            source.sendFeedback(withMapPrefix(map, Text.translatable("text.nucleoid_creator_tools.map.data.set.at.success",
                             path.toString())),
                     false);
         }
@@ -593,7 +591,7 @@ public final class MapMetadataCommand {
             }
 
             if (count > 0) {
-                source.sendFeedback(withMapPrefix(map, new LiteralText(String.format(message, count))), false);
+                source.sendFeedback(withMapPrefix(map, Text.literal(String.format(message, count))), false);
             }
             return 2;
         };
@@ -604,10 +602,10 @@ public final class MapMetadataCommand {
     }
 
     private static Text withMapPrefix(MapWorkspace map, @Nullable Text text) {
-        var prefix = new LiteralText("")
-                .append(new LiteralText("[").formatted(Formatting.GRAY))
-                .append(new LiteralText(map.getIdentifier().toString()).formatted(Formatting.GOLD))
-                .append(new LiteralText("] ").formatted(Formatting.GRAY));
+        var prefix = Text.empty()
+                .append(Text.literal("[").formatted(Formatting.GRAY))
+                .append(Text.literal(map.getIdentifier().toString()).formatted(Formatting.GOLD))
+                .append(Text.literal("] ").formatted(Formatting.GRAY));
         if (text != null) prefix.append(text);
         return prefix;
     }

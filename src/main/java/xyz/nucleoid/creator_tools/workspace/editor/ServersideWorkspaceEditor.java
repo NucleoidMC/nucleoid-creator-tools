@@ -9,8 +9,7 @@ import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.LiteralText;
-import net.minecraft.text.TranslatableText;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
@@ -89,7 +88,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
                 tracing.setTarget(pos);
                 this.traced = tracing.asComplete();
                 this.tracing = null;
-                this.player.sendMessage(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.commit"), true);
+                this.player.sendMessage(Text.translatable("item.nucleoid_creator_tools.add_region.trace_mode.commit"), true);
             } else {
                 this.tracing = new PartialRegion(pos);
             }
@@ -99,7 +98,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private void changeTraceMode() {
         var nextMode = this.traceMode.next();
         this.traceMode = nextMode;
-        this.player.sendMessage(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
+        this.player.sendMessage(Text.translatable("item.nucleoid_creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
     }
 
     @Override
@@ -109,7 +108,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
         var markerEntity = marker.applyTo(this.markerEntity);
         markerEntity.setPos(markerPos.x, markerPos.y, markerPos.z);
-        markerEntity.setCustomName(new LiteralText(region.marker()));
+        markerEntity.setCustomName(Text.literal(region.marker()));
 
         var networkHandler = this.player.networkHandler;
         networkHandler.sendPacket(markerEntity.createSpawnPacket());
@@ -134,7 +133,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         }
 
         var markerEntity = marker.applyTo(this.markerEntity);
-        markerEntity.setCustomName(new LiteralText(newRegion.marker()));
+        markerEntity.setCustomName(Text.literal(newRegion.marker()));
 
         this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
     }

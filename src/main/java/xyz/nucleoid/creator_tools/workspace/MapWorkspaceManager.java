@@ -12,7 +12,7 @@ import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.dimension.DimensionTypes;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditor;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditorManager;
@@ -208,7 +208,7 @@ public final class MapWorkspaceManager extends PersistentState {
         var generator = new VoidChunkGenerator(registries.get(Registry.BIOME_KEY));
 
         return new RuntimeWorldConfig()
-                .setDimensionType(DimensionType.OVERWORLD_REGISTRY_KEY)
+                .setDimensionType(DimensionTypes.OVERWORLD)
                 .setGenerator(generator);
     }
 }

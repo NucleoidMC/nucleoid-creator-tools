@@ -8,7 +8,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.TranslatableText;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
@@ -34,7 +34,7 @@ public final class IncludeEntityItem extends Item implements PolymerItem {
             if (workspace != null) {
                 if (!workspace.getBounds().contains(entity.getBlockPos())) {
                     user.sendMessage(
-                            new TranslatableText(stack.getTranslationKey() + ".target_not_in_map", workspace.getIdentifier())
+                            Text.translatable(stack.getTranslationKey() + ".target_not_in_map", workspace.getIdentifier())
                                     .formatted(Formatting.RED),
                             false);
                     return ActionResult.FAIL;
@@ -43,17 +43,17 @@ public final class IncludeEntityItem extends Item implements PolymerItem {
                 if (workspace.containsEntity(entity.getUuid())) {
                     workspace.removeEntity(entity.getUuid());
                     user.sendMessage(
-                            new TranslatableText(stack.getTranslationKey() + ".removed", workspace.getIdentifier()),
+                            Text.translatable(stack.getTranslationKey() + ".removed", workspace.getIdentifier()),
                             true);
                 } else {
                     workspace.addEntity(entity.getUuid());
                     user.sendMessage(
-                            new TranslatableText(stack.getTranslationKey() + ".added", workspace.getIdentifier()),
+                            Text.translatable(stack.getTranslationKey() + ".added", workspace.getIdentifier()),
                             true);
                 }
                 return ActionResult.SUCCESS;
             } else {
-                user.sendMessage(new TranslatableText(stack.getTranslationKey() + ".player_not_in_map").formatted(Formatting.RED),
+                user.sendMessage(Text.translatable(stack.getTranslationKey() + ".player_not_in_map").formatted(Formatting.RED),
                         false);
                 return ActionResult.FAIL;
             }

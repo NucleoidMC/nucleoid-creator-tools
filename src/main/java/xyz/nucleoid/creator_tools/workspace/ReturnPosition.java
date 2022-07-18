@@ -9,19 +9,7 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 
-public final class ReturnPosition {
-    public final RegistryKey<World> dimension;
-    public final Vec3d position;
-    public final float yaw;
-    public final float pitch;
-
-    public ReturnPosition(RegistryKey<World> dimension, Vec3d position, float yaw, float pitch) {
-        this.dimension = dimension;
-        this.position = position;
-        this.yaw = yaw;
-        this.pitch = pitch;
-    }
-
+public record ReturnPosition(RegistryKey<World> dimension, Vec3d position, float yaw, float pitch) {
     public static ReturnPosition capture(PlayerEntity player) {
         return new ReturnPosition(player.world.getRegistryKey(), player.getPos(), player.getYaw(), player.getPitch());
     }

@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.util.NbtType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.encryption.PlayerPublicKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -38,8 +39,8 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
     private ReturnPosition leaveReturn;
     private final Map<RegistryKey<World>, ReturnPosition> workspaceReturns = new Reference2ObjectOpenHashMap<>();
 
-    private ServerPlayerEntityMixin(World world, BlockPos blockPos, float yaw, GameProfile gameProfile) {
-        super(world, blockPos, yaw, gameProfile);
+    private ServerPlayerEntityMixin(World world, BlockPos blockPos, float yaw, GameProfile gameProfile, @Nullable PlayerPublicKey publicKey) {
+        super(world, blockPos, yaw, gameProfile, publicKey);
     }
 
     @Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))

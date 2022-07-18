@@ -2,16 +2,15 @@ package xyz.nucleoid.creator_tools.workspace.trace;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.text.TranslatableText;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
 public enum RegionTraceMode {
-    OFFSET(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.offset")),
-    EXACT(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.exact")),
-    AT_FEET(new TranslatableText("item.nucleoid_creator_tools.add_region.trace_mode.at_feet"));
+    OFFSET(Text.translatable("item.nucleoid_creator_tools.add_region.trace_mode.offset")),
+    EXACT(Text.translatable("item.nucleoid_creator_tools.add_region.trace_mode.exact")),
+    AT_FEET(Text.translatable("item.nucleoid_creator_tools.add_region.trace_mode.at_feet"));
 
     private final Text name;
 

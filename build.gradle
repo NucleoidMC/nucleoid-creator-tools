@@ -1,17 +1,16 @@
 plugins {
-  id 'fabric-loom' version '0.10-SNAPSHOT'
+  id 'fabric-loom' version '0.12-SNAPSHOT'
   id 'maven-publish'
 }
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
+sourceCompatibility = targetCompatibility = JavaVersion.VERSION_17
 
 archivesBaseName = project.archives_base_name
 version = project.mod_version
 group = project.maven_group
 
-minecraft {
-  accessWidener = file("src/main/resources/creator_tools.accesswidener")
+loom {
+  accessWidenerPath = file("src/main/resources/creator_tools.accesswidener")
 }
 
 repositories {
@@ -26,11 +25,11 @@ dependencies {
 
   modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-  modImplementation include('eu.pb4:polymer:0.2.0-beta.36+1.18.2')
-  modImplementation include('fr.catcore:server-translations-api:1.4.10+1.18.2')
-  modImplementation include('xyz.nucleoid:fantasy:0.4.4+1.18.2')
+  modImplementation include('eu.pb4:polymer:0.2.7+1.19')
+  modImplementation include('fr.catcore:server-translations-api:1.4.16+1.19')
+  modImplementation include('xyz.nucleoid:fantasy:0.4.5+1.19')
 
-  modImplementation include('xyz.nucleoid:map-templates:0.1.4+1.18.1')
+  modImplementation include('xyz.nucleoid:map-templates:0.1.5+1.19')
 }
 
 processResources {
@@ -41,15 +40,17 @@ processResources {
   }
 }
 
-tasks.withType(JavaCompile) {
-  options.encoding = "UTF-8"
+tasks.withType(JavaCompile).configureEach {
+  it.options.encoding = "UTF-8"
+  it.options.release = 17
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-  classifier = "sources"
-  from sourceSets.main.allSource
+java {
+  withSourcesJar()
 }
 
 jar {
-  from "LICENSE"
+  from("LICENSE") {
+    rename { "${it}_${project.archivesBaseName}"}
+  }
 }
