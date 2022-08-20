@@ -178,6 +178,10 @@ public final class MapWorkspace {
      */
     public void setData(NbtCompound data) {
         this.data = data;
+
+        for (var listener : this.listeners) {
+            listener.onSetData(data);
+        }
     }
 
     public NbtCompound serialize(NbtCompound root) {
