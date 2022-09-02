@@ -11,16 +11,21 @@ import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
+import com.google.common.base.Predicates;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.PartialRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.RegionTraceMode;
 import xyz.nucleoid.map_templates.BlockBounds;
 
+import java.util.Collection;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private static final int PARTICLE_INTERVAL = 10;
+
+    private static final Predicate<String> NO_FILTER = Predicates.alwaysTrue();
 
     private final ServerPlayerEntity player;
     private final MapWorkspace workspace;
@@ -28,6 +33,8 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private RegionTraceMode traceMode = RegionTraceMode.EXACT;
     private PartialRegion tracing;
     private BlockBounds traced;
+
+    private Predicate<String> filter = NO_FILTER;
 
     private final ArmorStandEntity markerEntity;
     private final Int2ObjectMap<Marker> regionToMarker = new Int2ObjectOpenHashMap<>();
@@ -70,6 +77,36 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
             this.changeTraceMode();
         }
         return true;
+    }
+
+    @Override
+    public boolean useRegionVisibilityFilterItem(Collection<String> regions) {
+        Predicate<String> oldFilter = this.filter;
+        this.filter = regions == null || this.player.isSneaking() ? NO_FILTER : regions::contains;
+
+        if (this.filter == oldFilter) {
+            return false;
+        }
+
+        for (var region : workspace.getRegions()) {
+            boolean previouslyVisible = oldFilter.test(region.marker());
+            boolean nowVisible = this.filter.test(region.marker());
+
+            if (previouslyVisible && !nowVisible) {
+                this.removeRegion(region);
+            } else if (!previouslyVisible && nowVisible) {
+                this.addRegion(region);
+            }
+        }
+
+        Text message = Text.translatable("item.nucleoid_creator_tools.region_visibility_filter." + (this.filter == NO_FILTER ? "no_filter" : "set_filter"));
+        this.player.sendMessage(message, true);
+
+        return true;
+    }
+
+    private boolean isRegionVisible(WorkspaceRegion region) {
+        return this.filter.test(region.marker());
     }
 
     @Override
@@ -150,6 +187,8 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         ParticleOutlineRenderer.render(this.player, bounds.min(), bounds.max(), 1.0F, 0.0F, 0.0F);
 
         for (var region : workspace.getRegions()) {
+            if (!this.isRegionVisible(region)) continue;
+
             var regionBounds = region.bounds();
             var min = regionBounds.min();
             var max = regionBounds.max();
@@ -180,7 +219,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         }
     }
 
-    private static int colorForRegionMarker(String marker) {
+    public static int colorForRegionMarker(String marker) {
         return HashCommon.mix(marker.hashCode()) & 0xFFFFFF;
     }
 

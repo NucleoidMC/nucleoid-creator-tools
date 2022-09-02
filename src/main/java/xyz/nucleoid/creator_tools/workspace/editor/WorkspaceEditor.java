@@ -1,6 +1,7 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
 import net.minecraft.util.math.BlockPos;
+import java.util.Collection;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -22,6 +23,10 @@ public interface WorkspaceEditor {
     }
 
     default boolean useRegionItem() {
+        return false;
+    }
+
+    default boolean useRegionVisibilityFilterItem(Collection<String> regions) {
         return false;
     }
 
