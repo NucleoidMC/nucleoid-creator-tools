@@ -18,14 +18,13 @@ import xyz.nucleoid.creator_tools.workspace.trace.PartialRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.RegionTraceMode;
 import xyz.nucleoid.map_templates.BlockBounds;
 
-import java.util.Collection;
 import java.util.UUID;
 import java.util.function.Predicate;
 
 public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private static final int PARTICLE_INTERVAL = 10;
 
-    private static final Predicate<String> NO_FILTER = Predicates.alwaysTrue();
+    public static final Predicate<String> NO_FILTER = Predicates.alwaysTrue();
 
     private final ServerPlayerEntity player;
     private final MapWorkspace workspace;
@@ -80,9 +79,9 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     }
 
     @Override
-    public boolean useRegionVisibilityFilterItem(Collection<String> regions) {
+    public boolean applyFilter(Predicate<String> filter) {
         Predicate<String> oldFilter = this.filter;
-        this.filter = regions == null || this.player.isSneaking() ? NO_FILTER : regions::contains;
+        this.filter = filter;
 
         if (this.filter == oldFilter) {
             return false;

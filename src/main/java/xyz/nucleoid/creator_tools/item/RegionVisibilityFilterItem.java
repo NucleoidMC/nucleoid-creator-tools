@@ -1,6 +1,9 @@
 package xyz.nucleoid.creator_tools.item;
 
 import java.util.List;
+import java.util.function.Predicate;
+
+import org.jetbrains.annotations.Nullable;
 
 import eu.pb4.polymer.api.item.PolymerItem;
 import net.minecraft.client.item.TooltipContext;
@@ -38,8 +41,9 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
             var editor = workspaceManager.getEditorFor(serverPlayer);
 
             var regions = getRegions(stack);
-
-            if (editor != null && editor.useRegionVisibilityFilterItem(regions)) {
+            Predicate<String> filter = regions == null || player.isSneaking() ? ServersideWorkspaceEditor.NO_FILTER : regions::contains;
+            
+            if (editor != null && editor.applyFilter(filter)) {
                 return TypedActionResult.success(stack);
             }
         }
@@ -72,6 +76,7 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
         }
     }
 
+    @Nullable
     private static List<String> getRegions(ItemStack stack) {
         var nbt = stack.getNbt();
         if (nbt == null) return null;
