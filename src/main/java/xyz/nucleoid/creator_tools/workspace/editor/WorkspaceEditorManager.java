@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceListener;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
+import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 import java.util.Map;
@@ -55,7 +56,8 @@ public final class WorkspaceEditorManager {
     }
 
     private WorkspaceEditor createEditorFor(ServerPlayerEntity player, MapWorkspace workspace) {
-        return new ServersideWorkspaceEditor(player, workspace);
+        int protocolVersion = WorkspaceTraveler.getCreatorToolsProtocolVersion(player);
+        return protocolVersion == 1 ? new NetworkedWorkspaceEditor(player, workspace) : new ServersideWorkspaceEditor(player, workspace);
     }
 
     @Nullable

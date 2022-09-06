@@ -27,6 +27,7 @@ import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.ReturnPosition;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
+import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 
 import java.util.Map;
 
@@ -38,6 +39,8 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
 
     private ReturnPosition leaveReturn;
     private final Map<RegistryKey<World>, ReturnPosition> workspaceReturns = new Reference2ObjectOpenHashMap<>();
+
+    private int creatorToolsProtocolVersion = WorkspaceNetworking.NO_PROTOCOL_VERSION;
 
     private ServerPlayerEntityMixin(World world, BlockPos blockPos, float yaw, GameProfile gameProfile, @Nullable PlayerPublicKey publicKey) {
         super(world, blockPos, yaw, gameProfile, publicKey);
@@ -89,6 +92,7 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
         this.leaveReturn = fromTraveler.leaveReturn;
         this.workspaceReturns.clear();
         this.workspaceReturns.putAll(fromTraveler.workspaceReturns);
+        this.creatorToolsProtocolVersion = fromTraveler.creatorToolsProtocolVersion;
     }
 
     @Inject(method = "teleport", at = @At("HEAD"))
@@ -123,5 +127,15 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
     @Override
     public ReturnPosition getLeaveReturn() {
         return this.leaveReturn;
+    }
+
+    @Override
+    public int getCreatorToolsProtocolVersion() {
+        return this.creatorToolsProtocolVersion;
+    }
+
+    @Override
+    public void setCreatorToolsProtocolVersion(int protocolVersion) {
+        this.creatorToolsProtocolVersion = protocolVersion;
     }
 }

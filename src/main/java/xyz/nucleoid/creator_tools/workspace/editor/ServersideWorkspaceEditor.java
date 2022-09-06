@@ -3,18 +3,13 @@ package xyz.nucleoid.creator_tools.workspace.editor;
 import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
 import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
@@ -23,7 +18,6 @@ import xyz.nucleoid.creator_tools.workspace.trace.RegionTraceMode;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private static final int PARTICLE_INTERVAL = 10;
@@ -51,47 +45,6 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         markerEntity.setMarker(true);
         markerEntity.setCustomNameVisible(true);
         this.markerEntity = markerEntity;
-    }
-
-    @Override
-    public void onEnter() {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_ENTER_ID)) {
-            var buf = PacketByteBufs.create();
-
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            WorkspaceNetworking.writeBounds(buf, this.workspace.getBounds());
-            buf.writeIdentifier(this.workspace.getWorld().getRegistryKey().getValue());
-            buf.writeNbt(this.workspace.getData());
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_ENTER_ID, buf);
-        }
-
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGIONS_ID)) {
-            var groups = this.workspace.getRegions().stream().collect(Collectors.groupingBy(WorkspaceRegion::marker));
-
-            for (var entry : groups.entrySet()) {
-                var buf = PacketByteBufs.create();
-
-                buf.writeString(entry.getKey());
-
-                for (var region : entry.getValue()) {
-                    buf.writeInt(region.runtimeId());
-                    WorkspaceNetworking.writeBounds(buf, region.bounds());
-                    buf.writeNbt(region.data());
-                }
-
-                this.sendPacket(WorkspaceNetworking.WORKSPACE_REGIONS_ID, buf);
-            }
-        }
-    }
-
-    @Override
-    public void onLeave() {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_LEAVE_ID)) {
-            var buf = PacketByteBufs.create();
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_LEAVE_ID, buf);
-        }
     }
 
     @Override
@@ -151,73 +104,38 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     @Override
     public void addRegion(WorkspaceRegion region) {
         var marker = this.nextMarkerIds();
+        var markerPos = region.bounds().center();
 
-        if (!this.sendRegionPacket(region)) {
-            var markerPos = region.bounds().center();
+        var markerEntity = marker.applyTo(this.markerEntity);
+        markerEntity.setPos(markerPos.x, markerPos.y, markerPos.z);
+        markerEntity.setCustomName(Text.literal(region.marker()));
 
-            var markerEntity = marker.applyTo(this.markerEntity);
-            markerEntity.setPos(markerPos.x, markerPos.y, markerPos.z);
-            markerEntity.setCustomName(Text.literal(region.marker()));
-
-            var networkHandler = this.player.networkHandler;
-            networkHandler.sendPacket(markerEntity.createSpawnPacket());
-            networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
-        }
+        var networkHandler = this.player.networkHandler;
+        networkHandler.sendPacket(markerEntity.createSpawnPacket());
+        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
 
         this.regionToMarker.put(region.runtimeId(), marker);
     }
 
     @Override
     public void removeRegion(WorkspaceRegion region) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGION_REMOVE_ID)) {
-            var buf = PacketByteBufs.create();
-            buf.writeInt(region.runtimeId());
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_REGION_REMOVE_ID, buf);
-        } else {
-            var marker = this.regionToMarker.remove(region.runtimeId());
-            if (marker != null) {
-                this.player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(marker.id()));
-            }
+        var marker = this.regionToMarker.remove(region.runtimeId());
+        if (marker != null) {
+            this.player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(marker.id()));
         }
     }
 
     @Override
     public void updateRegion(WorkspaceRegion lastRegion, WorkspaceRegion newRegion) {
-        if (!this.sendRegionPacket(newRegion)) {
-            var marker = this.regionToMarker.get(newRegion.runtimeId());
-            if (marker == null) {
-                return;
-            }
-
-            var markerEntity = marker.applyTo(this.markerEntity);
-            markerEntity.setCustomName(Text.literal(newRegion.marker()));
-
-            this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
+        var marker = this.regionToMarker.get(newRegion.runtimeId());
+        if (marker == null) {
+            return;
         }
-    }
 
-    @Override
-    public void setBounds(BlockBounds bounds) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_BOUNDS_ID)) {
-            var buf = PacketByteBufs.create();
+        var markerEntity = marker.applyTo(this.markerEntity);
+        markerEntity.setCustomName(Text.literal(newRegion.marker()));
 
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            WorkspaceNetworking.writeBounds(buf, bounds);
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_BOUNDS_ID, buf);
-        }
-    }
-
-    @Override
-    public void setData(NbtCompound data) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_DATA_ID)) {
-            var buf = PacketByteBufs.create();
-
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            buf.writeNbt(data);
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_DATA_ID, buf);
-        }
+        this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
     }
 
     private Marker nextMarkerIds() {
@@ -260,28 +178,6 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         } else if (traced != null) {
             ParticleOutlineRenderer.render(this.player, traced.min(), traced.max(), 0.1F, 1.0F, 0.1F);
         }
-    }
-
-    private boolean canSendPacket(Identifier channel) {
-        return ServerPlayNetworking.canSend(this.player, channel);
-    }
-
-    private void sendPacket(Identifier channel, PacketByteBuf buf) {
-        ServerPlayNetworking.send(this.player, channel, buf);
-    }
-
-    private boolean sendRegionPacket(WorkspaceRegion region) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGION_ID)) {
-            var buf = PacketByteBufs.create();
-
-            buf.writeInt(region.runtimeId());
-            WorkspaceNetworking.writeRegion(buf, region);
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_REGION_ID, buf);
-            return true;
-        }
-
-        return false;
     }
 
     private static int colorForRegionMarker(String marker) {
