@@ -46,7 +46,7 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
                 buf.writeString(entry.getKey());
 
                 for (var region : entry.getValue()) {
-                    buf.writeInt(region.runtimeId());
+                    buf.writeVarInt(region.runtimeId());
                     WorkspaceNetworking.writeBounds(buf, region.bounds());
                     buf.writeNbt(region.data());
                 }
@@ -74,7 +74,7 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
     public void removeRegion(WorkspaceRegion region) {
         if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGION_REMOVE_ID)) {
             var buf = PacketByteBufs.create();
-            buf.writeInt(region.runtimeId());
+            buf.writeVarInt(region.runtimeId());
             this.sendPacket(WorkspaceNetworking.WORKSPACE_REGION_REMOVE_ID, buf);
         }
     }
@@ -120,7 +120,7 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
         if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGION_ID)) {
             var buf = PacketByteBufs.create();
 
-            buf.writeInt(region.runtimeId());
+            buf.writeVarInt(region.runtimeId());
             WorkspaceNetworking.writeRegion(buf, region);
 
             this.sendPacket(WorkspaceNetworking.WORKSPACE_REGION_ID, buf);
