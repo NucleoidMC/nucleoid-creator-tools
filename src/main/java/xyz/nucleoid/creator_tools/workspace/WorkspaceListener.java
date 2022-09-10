@@ -1,5 +1,6 @@
 package xyz.nucleoid.creator_tools.workspace;
 
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.BlockPos;
 import xyz.nucleoid.map_templates.BlockBounds;
 
@@ -8,6 +9,9 @@ public interface WorkspaceListener {
     }
 
     default void onSetOrigin(BlockPos origin) {
+    }
+
+    default void onSetData(NbtCompound data) {
     }
 
     default void onAddRegion(WorkspaceRegion region) {

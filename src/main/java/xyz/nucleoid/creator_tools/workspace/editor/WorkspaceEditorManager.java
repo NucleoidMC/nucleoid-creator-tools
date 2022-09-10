@@ -2,6 +2,7 @@ package xyz.nucleoid.creator_tools.workspace.editor;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceListener;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
+import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 import java.util.Map;
@@ -29,7 +31,10 @@ public final class WorkspaceEditorManager {
     public void onPlayerRemoveFromWorld(ServerPlayerEntity player, ServerWorld world) {
         var workspace = this.workspaces.get(world.getRegistryKey());
         if (workspace != null) {
-            workspace.editors.remove(player.getUuid());
+            var editor = workspace.editors.remove(player.getUuid());
+            if (editor != null) {
+                editor.onLeave();
+            }
         }
     }
 
@@ -51,7 +56,8 @@ public final class WorkspaceEditorManager {
     }
 
     private WorkspaceEditor createEditorFor(ServerPlayerEntity player, MapWorkspace workspace) {
-        return new ServersideWorkspaceEditor(player, workspace);
+        int protocolVersion = WorkspaceTraveler.getCreatorToolsProtocolVersion(player);
+        return protocolVersion == 1 ? new NetworkedWorkspaceEditor(player, workspace) : new ServersideWorkspaceEditor(player, workspace);
     }
 
     @Nullable
@@ -74,6 +80,8 @@ public final class WorkspaceEditorManager {
 
         void addEditor(ServerPlayerEntity player, WorkspaceEditor editor) {
             this.editors.put(player.getUuid(), editor);
+
+            editor.onEnter();
 
             editor.setOrigin(this.workspace.getOrigin());
             editor.setBounds(this.workspace.getBounds());
@@ -100,6 +108,13 @@ public final class WorkspaceEditorManager {
         public void onSetOrigin(BlockPos origin) {
             for (var editor : this.editors.values()) {
                 editor.setOrigin(origin);
+            }
+        }
+
+        @Override
+        public void onSetData(NbtCompound data) {
+            for (var editor : this.editors.values()) {
+                editor.setData(data);
             }
         }
 

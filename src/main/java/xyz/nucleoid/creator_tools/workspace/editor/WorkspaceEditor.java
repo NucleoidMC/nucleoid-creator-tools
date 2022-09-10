@@ -1,5 +1,6 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
@@ -21,6 +22,9 @@ public interface WorkspaceEditor {
     default void setOrigin(BlockPos origin) {
     }
 
+    default void setData(NbtCompound data) {
+    }
+
     default boolean useRegionItem() {
         return false;
     }
@@ -28,6 +32,12 @@ public interface WorkspaceEditor {
     @Nullable
     default BlockBounds takeTracedRegion() {
         return null;
+    }
+
+    default void onEnter() {
+    }
+
+    default void onLeave() {
     }
 
     default void tick() {
