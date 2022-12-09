@@ -1,7 +1,7 @@
 package xyz.nucleoid.creator_tools.workspace;
 
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 import org.jetbrains.annotations.Nullable;

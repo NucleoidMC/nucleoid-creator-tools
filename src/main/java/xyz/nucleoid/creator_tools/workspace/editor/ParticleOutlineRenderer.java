@@ -1,15 +1,15 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
+import org.joml.Vector3f;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3f;
 
 public final class ParticleOutlineRenderer {
     public static void render(ServerPlayerEntity player, BlockPos min, BlockPos max, float red, float green, float blue) {
-        var effect = new DustParticleEffect(new Vec3f(red, green, blue), 2.0F);
+        var effect = new DustParticleEffect(new Vector3f(red, green, blue), 2.0F);
 
         var edges = edges(min, max);
 

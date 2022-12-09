@@ -112,7 +112,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
         var networkHandler = this.player.networkHandler;
         networkHandler.sendPacket(markerEntity.createSpawnPacket());
-        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
+        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker().getDirtyEntries()));
 
         this.regionToMarker.put(region.runtimeId(), marker);
     }
@@ -135,7 +135,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         var markerEntity = marker.applyTo(this.markerEntity);
         markerEntity.setCustomName(Text.literal(newRegion.marker()));
 
-        this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker(), true));
+        this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker().getDirtyEntries()));
     }
 
     private Marker nextMarkerIds() {

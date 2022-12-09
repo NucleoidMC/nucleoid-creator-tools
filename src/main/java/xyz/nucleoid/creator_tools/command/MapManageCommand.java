@@ -10,6 +10,8 @@ import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.ClickEvent;
@@ -21,9 +23,7 @@ import net.minecraft.text.Texts;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
-import net.minecraft.util.dynamic.RegistryOps;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.dimension.DimensionTypes;
 import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.MapTemplateExporter;
@@ -166,10 +166,10 @@ public final class MapManageCommand {
 
     private static int openWorkspaceLikeDimension(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         var dimension = DimensionOptionsArgument.get(context, "dimension");
-        var reg = context.getSource().getServer().getRegistryManager().get(Registry.DIMENSION_TYPE_KEY);
+        var reg = context.getSource().getServer().getRegistryManager().get(RegistryKeys.DIMENSION_TYPE);
         var worldConfig = new RuntimeWorldConfig()
-                .setDimensionType(reg.getEntry(reg.getKey(dimension.getDimensionTypeEntry().value()).get()).get())
-                .setGenerator(dimension.getChunkGenerator());
+                .setDimensionType(reg.getEntry(reg.getKey(dimension.dimensionTypeEntry().value()).get()).get())
+                .setGenerator(dimension.chunkGenerator());
 
         return MapManageCommand.openWorkspace(context, worldConfig);
     }

@@ -2,11 +2,11 @@ package xyz.nucleoid.creator_tools.workspace;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 
 public record ReturnPosition(RegistryKey<World> dimension, Vec3d position, float yaw, float pitch) {
@@ -30,7 +30,7 @@ public record ReturnPosition(RegistryKey<World> dimension, Vec3d position, float
     }
 
     public static ReturnPosition read(NbtCompound root) {
-        var dimension = RegistryKey.of(Registry.WORLD_KEY, new Identifier(root.getString("dimension")));
+        var dimension = RegistryKey.of(RegistryKeys.WORLD, new Identifier(root.getString("dimension")));
         double x = root.getDouble("x");
         double y = root.getDouble("y");
         double z = root.getDouble("z");
