@@ -10,11 +10,11 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
@@ -207,7 +207,7 @@ public final class MapWorkspace {
 
         var entityTypeList = new NbtList();
         for (var type : this.entityTypesToInclude) {
-            entityTypeList.add(NbtString.of(Registry.ENTITY_TYPE.getId(type).toString()));
+            entityTypeList.add(NbtString.of(Registries.ENTITY_TYPE.getId(type).toString()));
         }
         entitiesTag.put("types", entityTypeList);
         root.put("entities", entitiesTag);
@@ -247,7 +247,7 @@ public final class MapWorkspace {
 
         entitiesTag.getList("types", NbtType.STRING).stream()
                 .map(tag -> new Identifier(tag.asString()))
-                .map(Registry.ENTITY_TYPE::get)
+                .map(Registries.ENTITY_TYPE::get)
                 .forEach(map.entityTypesToInclude::add);
 
         // Data

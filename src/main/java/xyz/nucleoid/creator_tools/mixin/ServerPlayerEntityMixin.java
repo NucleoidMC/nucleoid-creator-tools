@@ -6,14 +6,13 @@ import net.fabricmc.fabric.api.util.NbtType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.encryption.PlayerPublicKey;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -42,8 +41,8 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
 
     private int creatorToolsProtocolVersion = WorkspaceNetworking.NO_PROTOCOL_VERSION;
 
-    private ServerPlayerEntityMixin(World world, BlockPos blockPos, float yaw, GameProfile gameProfile, @Nullable PlayerPublicKey publicKey) {
-        super(world, blockPos, yaw, gameProfile, publicKey);
+    private ServerPlayerEntityMixin(World world, BlockPos blockPos, float yaw, GameProfile gameProfile) {
+        super(world, blockPos, yaw, gameProfile);
     }
 
     @Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
@@ -76,7 +75,7 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
 
         var workspaceReturnPositions = creatorTools.getCompound("workspace_return");
         for (var key : workspaceReturnPositions.getKeys()) {
-            var dimensionKey = RegistryKey.of(Registry.WORLD_KEY, new Identifier(key));
+            var dimensionKey = RegistryKey.of(RegistryKeys.WORLD, new Identifier(key));
             var position = ReturnPosition.read(workspaceReturnPositions.getCompound(key));
             this.workspaceReturns.put(dimensionKey, position);
         }

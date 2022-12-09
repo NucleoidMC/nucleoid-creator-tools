@@ -20,13 +20,13 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.visitor.NbtTextFormatter;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
@@ -509,7 +509,7 @@ public final class MapMetadataCommand {
         var path = NbtPathArgumentType.getNbtPath(context, "path");
         var element = NbtElementArgumentType.getNbtElement(context, "nbt");
         var data = map.getData().copy();
-        if (path.put(data, element::copy) == 0) {
+        if (path.put(data, element.copy()) == 0) {
             throw MERGE_FAILED_EXCEPTION.create();
         } else {
             map.setData(data);
@@ -534,11 +534,11 @@ public final class MapMetadataCommand {
     private static Pair<Identifier, EntityType<?>> getEntityType(CommandContext<ServerCommandSource> context) throws
             CommandSyntaxException {
         var id = IdentifierArgumentType.getIdentifier(context, "entity_type");
-        return new Pair<>(id, Registry.ENTITY_TYPE.getOrEmpty(id).orElseThrow(() -> ENTITY_TYPE_NOT_FOUND.create(id)));
+        return new Pair<>(id, Registries.ENTITY_TYPE.getOrEmpty(id).orElseThrow(() -> ENTITY_TYPE_NOT_FOUND.create(id)));
     }
 
     private static SuggestionProvider<ServerCommandSource> entityTypeSuggestions() {
-        return (ctx, builder) -> CommandSource.suggestIdentifiers(Registry.ENTITY_TYPE.getIds(), builder);
+        return (ctx, builder) -> CommandSource.suggestIdentifiers(Registries.ENTITY_TYPE.getIds(), builder);
     }
 
     private static SuggestionProvider<ServerCommandSource> regionSuggestions() {

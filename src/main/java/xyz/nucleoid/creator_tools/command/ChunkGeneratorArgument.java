@@ -7,11 +7,11 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.serialization.Codec;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 
 public final class ChunkGeneratorArgument {
@@ -23,7 +23,7 @@ public final class ChunkGeneratorArgument {
         return CommandManager.argument(name, IdentifierArgumentType.identifier())
                 .suggests((context, builder) -> {
                     return CommandSource.suggestIdentifiers(
-                            Registry.CHUNK_GENERATOR.getIds().stream(),
+                            Registries.CHUNK_GENERATOR.getIds().stream(),
                             builder
                     );
                 });
@@ -32,7 +32,7 @@ public final class ChunkGeneratorArgument {
     public static Codec<? extends ChunkGenerator> get(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
         var identifier = IdentifierArgumentType.getIdentifier(context, name);
 
-        var generator = Registry.CHUNK_GENERATOR.get(identifier);
+        var generator = Registries.CHUNK_GENERATOR.get(identifier);
         if (generator == null) {
             throw GENERATOR_NOT_FOUND.create(identifier);
         }

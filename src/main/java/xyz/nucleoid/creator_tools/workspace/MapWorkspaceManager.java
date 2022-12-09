@@ -3,12 +3,12 @@ package xyz.nucleoid.creator_tools.workspace;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
@@ -205,7 +205,7 @@ public final class MapWorkspaceManager extends PersistentState {
 
     private RuntimeWorldConfig createDefaultConfig() {
         var registries = this.server.getRegistryManager();
-        var generator = new VoidChunkGenerator(registries.get(Registry.BIOME_KEY));
+        var generator = new VoidChunkGenerator(registries.get(RegistryKeys.BIOME));
 
         return new RuntimeWorldConfig()
                 .setDimensionType(DimensionTypes.OVERWORLD)
