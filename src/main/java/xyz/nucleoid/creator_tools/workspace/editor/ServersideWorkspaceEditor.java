@@ -148,7 +148,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
         var networkHandler = this.player.networkHandler;
         networkHandler.sendPacket(markerEntity.createSpawnPacket());
-        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker().getDirtyEntries()));
+        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker().getChangedEntries()));
 
         this.regionToMarker.put(region.runtimeId(), marker);
     }
