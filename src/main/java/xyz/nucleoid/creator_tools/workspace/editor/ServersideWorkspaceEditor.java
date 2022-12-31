@@ -170,8 +170,10 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
         var markerEntity = marker.applyTo(this.markerEntity);
         markerEntity.setCustomName(Text.literal(newRegion.marker()));
-
-        this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker().getDirtyEntries()));
+        var dirty = markerEntity.getDataTracker().getDirtyEntries();
+        if (dirty != null) {
+            this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), dirty));
+        }
     }
 
     private Marker nextMarkerIds() {
