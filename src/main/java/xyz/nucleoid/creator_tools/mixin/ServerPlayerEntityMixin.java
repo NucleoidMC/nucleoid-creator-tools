@@ -94,7 +94,7 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
         this.creatorToolsProtocolVersion = fromTraveler.creatorToolsProtocolVersion;
     }
 
-    @Inject(method = "teleport", at = @At("HEAD"))
+    @Inject(method = "teleport(Lnet/minecraft/server/world/ServerWorld;DDDFF)V", at = @At("HEAD"))
     private void onTeleport(ServerWorld targetWorld, double x, double y, double z, float yaw, float pitch, CallbackInfo ci) {
         this.onDimensionChange(targetWorld);
     }
