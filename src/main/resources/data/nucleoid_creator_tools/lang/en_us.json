@@ -62,5 +62,6 @@
   "text.nucleoid_creator_tools.map.region.entity.remove.error": "Could not remove entities in map \"%s\".",
   "text.nucleoid_creator_tools.map.region.entity.remove.success": "Removed %s entities in map \"%s\".",
   "text.nucleoid_creator_tools.map.region.remove.success": "Removed %s regions.",
-  "text.nucleoid_creator_tools.map.region.rename.success": "Renamed %s regions."
+  "text.nucleoid_creator_tools.map.region.rename.success": "Renamed %s regions.",
+  "text.nucleoid_creator_tools.name": "Nucleoid Creator Tools"
 }

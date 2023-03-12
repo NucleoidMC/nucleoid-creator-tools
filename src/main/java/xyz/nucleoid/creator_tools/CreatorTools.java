@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import net.minecraft.util.Identifier;
 import xyz.nucleoid.creator_tools.command.MapManageCommand;
 import xyz.nucleoid.creator_tools.command.MapMetadataCommand;
 import xyz.nucleoid.creator_tools.item.CreatorToolsItems;
@@ -36,5 +37,9 @@ public final class CreatorTools implements ModInitializer {
             int protocolVersion = buf.readVarInt();
             WorkspaceTraveler.setCreatorToolsProtocolVersion(player, protocolVersion);
         });
+    }
+
+    public static Identifier identifier(String path) {
+        return new Identifier(ID, path);
     }
 }
