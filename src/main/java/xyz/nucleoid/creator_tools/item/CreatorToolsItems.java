@@ -16,7 +16,7 @@ public final class CreatorToolsItems {
     public static final ItemGroup ITEM_GROUP = PolymerItemGroupUtils.builder(CreatorTools.identifier("general"))
         .displayName(Text.translatable("text.nucleoid_creator_tools.name"))
         .icon(ADD_REGION::getDefaultStack)
-        .entries((enabledFeatures, entries, operatorEnabled) -> {
+        .entries((context, entries) -> {
             entries.add(ADD_REGION);
             entries.add(INCLUDE_ENTITY);
             entries.add(REGION_VISIBILITY_FILTER);
