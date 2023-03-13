@@ -20,10 +20,9 @@ public final class ParticleOutlineRenderer {
             int length = edge.length();
 
             int steps = Math.max(Math.min(length, maxCount), (length + maxInterval - 1) / maxInterval);
-            double interval = steps == 0 ? 0 : length / ((double) steps);
 
             for (int i = 0; i <= steps; i++) {
-                double m = i * interval / length;
+                double m = steps == 0 ? 0 : i / ((double) steps);
                 spawnParticleIfVisible(
                         player, effect,
                         edge.projX(m), edge.projY(m), edge.projZ(m)
