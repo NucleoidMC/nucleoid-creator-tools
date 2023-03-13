@@ -1,6 +1,7 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -21,13 +22,19 @@ public final class ParticleOutlineRenderer {
 
             int steps = Math.max(Math.min(length, maxCount), (length + maxInterval - 1) / maxInterval);
 
-            for (int i = 0; i <= steps; i++) {
-                double m = steps == 0 ? 0 : i / ((double) steps);
+            for (int i = 1; i < steps; i++) {
+                double m = i / ((double) steps);
                 spawnParticleIfVisible(
                         player, effect,
                         edge.projX(m), edge.projY(m), edge.projZ(m)
                 );
             }
+        }
+
+        var vertices = vertices(min, max);
+
+        for (var vertex : vertices) {
+            spawnParticleIfVisible(player, effect, vertex.x, vertex.y, vertex.z);
         }
     }
 
@@ -53,6 +60,26 @@ public final class ParticleOutlineRenderer {
                 0.0, 0.0, 0.0,
                 0.0
         );
+    }
+
+    private static Vector3i[] vertices(BlockPos min, BlockPos max) {
+        int minX = min.getX();
+        int minY = min.getY();
+        int minZ = min.getZ();
+        int maxX = max.getX() + 1;
+        int maxY = max.getY() + 1;
+        int maxZ = max.getZ() + 1;
+
+        return new Vector3i[] {
+                new Vector3i(minX, minY, minZ),
+                new Vector3i(minX, minY, maxZ),
+                new Vector3i(minX, maxY, minZ),
+                new Vector3i(minX, maxY, maxZ),
+                new Vector3i(maxX, minY, minZ),
+                new Vector3i(maxX, minY, maxZ),
+                new Vector3i(maxX, maxY, minZ),
+                new Vector3i(maxX, maxY, maxZ)
+        };
     }
 
     private static Edge[] edges(BlockPos min, BlockPos max) {
