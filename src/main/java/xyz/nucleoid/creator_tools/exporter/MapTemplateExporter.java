@@ -1,7 +1,8 @@
-package xyz.nucleoid.creator_tools;
+package xyz.nucleoid.creator_tools.exporter;
 
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
+import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTemplateSerializer;
 

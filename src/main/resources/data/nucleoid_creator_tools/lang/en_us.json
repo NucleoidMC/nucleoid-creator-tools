@@ -15,6 +15,8 @@
   "item.nucleoid_creator_tools.region_visibility_filter.set_filter": "Set the region visibility filter",
   "text.nucleoid_creator_tools.chunk_generator.generator_not_found": "Chunk generator with id '%s' was not found!",
   "text.nucleoid_creator_tools.dimension_options.dimension_not_found": "Dimension with id '%s' was not found!",
+  "text.nucleoid_creator_tools.dump.error": "Failed to dump data! An unexpected exception was thrown",
+  "text.nucleoid_creator_tools.dump.success": "Dumped data for '%s'",
   "text.nucleoid_creator_tools.map_workspace.workspace_not_found": "Map with id '%s' was not found!",
   "text.nucleoid_creator_tools.map.bounds.get": "The bounds for the workspace are %s to %s",
   "text.nucleoid_creator_tools.map.bounds.set": "Updated bounds for workspace",

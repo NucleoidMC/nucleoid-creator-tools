@@ -26,7 +26,7 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.dimension.DimensionTypes;
 import xyz.nucleoid.creator_tools.CreatorTools;
-import xyz.nucleoid.creator_tools.MapTemplateExporter;
+import xyz.nucleoid.creator_tools.exporter.MapTemplateExporter;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
@@ -36,7 +36,6 @@ import xyz.nucleoid.map_templates.MapTemplatePlacer;
 import xyz.nucleoid.map_templates.MapTemplateSerializer;
 
 import java.io.IOException;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import static net.minecraft.server.command.CommandManager.argument;
@@ -125,16 +124,7 @@ public final class MapManageCommand {
         var source = context.getSource();
 
         var givenIdentifier = IdentifierArgumentType.getIdentifier(context, "workspace");
-
-        Identifier identifier;
-        if (givenIdentifier.getNamespace().equals("minecraft")) {
-            var sourceName = context.getSource().getName()
-                    .toLowerCase(Locale.ROOT)
-                    .replaceAll("\\s", "_");
-            identifier = new Identifier(sourceName, givenIdentifier.getPath());
-        } else {
-            identifier = givenIdentifier;
-        }
+        var identifier = CreatorTools.getSourceNameIdentifier(source, givenIdentifier);
 
         var workspaceManager = MapWorkspaceManager.get(source.getServer());
         if (workspaceManager.byId(identifier) != null) {
