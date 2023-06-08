@@ -44,7 +44,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         this.player = player;
         this.workspace = workspace;
 
-        var markerEntity = new ArmorStandEntity(EntityType.ARMOR_STAND, player.world);
+        var markerEntity = new ArmorStandEntity(EntityType.ARMOR_STAND, player.getWorld());
         markerEntity.setInvisible(true);
         markerEntity.setInvulnerable(true);
         markerEntity.setNoGravity(true);

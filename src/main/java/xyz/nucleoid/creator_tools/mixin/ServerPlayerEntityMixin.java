@@ -105,7 +105,7 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
     }
 
     private void onDimensionChange(ServerWorld targetWorld) {
-        var sourceDimension = this.world.getRegistryKey();
+        var sourceDimension = this.getWorld().getRegistryKey();
         var targetDimension = targetWorld.getRegistryKey();
 
         var workspaceManager = MapWorkspaceManager.get(this.server);
