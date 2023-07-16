@@ -11,7 +11,7 @@ import net.minecraft.world.World;
 
 public record ReturnPosition(RegistryKey<World> dimension, Vec3d position, float yaw, float pitch) {
     public static ReturnPosition capture(PlayerEntity player) {
-        return new ReturnPosition(player.world.getRegistryKey(), player.getPos(), player.getYaw(), player.getPitch());
+        return new ReturnPosition(player.getWorld().getRegistryKey(), player.getPos(), player.getYaw(), player.getPitch());
     }
 
     public void applyTo(ServerPlayerEntity player) {

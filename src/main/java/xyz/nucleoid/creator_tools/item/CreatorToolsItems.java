@@ -1,6 +1,7 @@
 package xyz.nucleoid.creator_tools.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItemGroupUtils;
+import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.registry.Registries;
@@ -13,7 +14,7 @@ public final class CreatorToolsItems {
     public static final Item INCLUDE_ENTITY = register("include_entity", new IncludeEntityItem(new Item.Settings()));
     public static final Item REGION_VISIBILITY_FILTER = register("region_visibility_filter", new RegionVisibilityFilterItem(new Item.Settings()));
 
-    public static final ItemGroup ITEM_GROUP = PolymerItemGroupUtils.builder(CreatorTools.identifier("general"))
+    public static final ItemGroup ITEM_GROUP = FabricItemGroup.builder()
         .displayName(Text.translatable("text.nucleoid_creator_tools.name"))
         .icon(ADD_REGION::getDefaultStack)
         .entries((context, entries) -> {
@@ -25,5 +26,9 @@ public final class CreatorToolsItems {
 
     private static Item register(String path, Item item) {
         return Registry.register(Registries.ITEM, CreatorTools.identifier(path), item);
+    }
+
+    public static void register() {
+        PolymerItemGroupUtils.registerPolymerItemGroup(CreatorTools.identifier("general"), ITEM_GROUP);
     }
 }
