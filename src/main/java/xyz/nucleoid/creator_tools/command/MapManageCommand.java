@@ -338,10 +338,11 @@ public final class MapManageCommand {
         }
 
         var workspaceManager = MapWorkspaceManager.get(source.getServer());
+        boolean deleted = workspaceManager.delete(workspace);
 
         source.sendFeedback(() -> {
             MutableText message;
-            if (workspaceManager.delete(workspace)) {
+            if (deleted) {
                 message = Text.translatable("text.nucleoid_creator_tools.map.delete.success", workspace.getIdentifier());
             } else {
                 message = Text.translatable("text.nucleoid_creator_tools.map.delete.error", workspace.getIdentifier());
