@@ -31,7 +31,8 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew build
-
+        env:
+          MODRINTH: ${{ secrets.MODRINTH_KEY }}
       - name: Upload GitHub release
         uses: AButler/upload-release-assets@v2.0
         with:
