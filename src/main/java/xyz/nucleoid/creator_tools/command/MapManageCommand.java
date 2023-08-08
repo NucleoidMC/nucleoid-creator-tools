@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
@@ -62,7 +63,7 @@ public final class MapManageCommand {
     // @formatter:off
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(
-            literal("map").requires(source -> source.hasPermissionLevel(4))
+            literal("map").requires(Permissions.require("nucleoid_creator_extras.map", 2))
                 .then(literal("open")
                     .then(argument("workspace", IdentifierArgumentType.identifier())
                     .executes(context -> MapManageCommand.openWorkspace(context, null))
