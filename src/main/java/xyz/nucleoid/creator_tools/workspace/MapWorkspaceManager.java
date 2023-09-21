@@ -47,9 +47,14 @@ public final class MapWorkspaceManager extends PersistentState {
     }
 
     public static MapWorkspaceManager get(MinecraftServer server) {
-        return server.getOverworld().getPersistentStateManager().getOrCreate(
-                nbt -> MapWorkspaceManager.readNbt(server, nbt),
+        var type = new PersistentState.Type<>(
                 () -> new MapWorkspaceManager(server),
+                nbt -> MapWorkspaceManager.readNbt(server, nbt),
+                null
+        );
+
+        return server.getOverworld().getPersistentStateManager().getOrCreate(
+                type,
                 KEY
         );
     }
