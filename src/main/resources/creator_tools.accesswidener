@@ -1,3 +1,4 @@
 accessWidener v1 named
 
 accessible method net/minecraft/entity/decoration/ArmorStandEntity setMarker (Z)V
+accessible method net/minecraft/world/PersistentStateManager getFile (Ljava/lang/String;)Ljava/io/File;
