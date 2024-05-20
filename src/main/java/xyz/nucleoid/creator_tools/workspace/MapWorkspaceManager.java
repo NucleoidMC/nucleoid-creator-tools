@@ -227,18 +227,18 @@ public final class MapWorkspaceManager extends PersistentState {
     public static void migratePath(MinecraftServer server) {
         var manager = server.getOverworld().getPersistentStateManager();
 
-        // Don't overwrite a migrated file, if one exists
-        var file = manager.getFile(MapWorkspaceManager.KEY);
-        if (file.isFile()) return;
-
-        var legacyFile = manager.getFile(MapWorkspaceManager.LEGACY_KEY);
-        if (!legacyFile.isFile()) return;
-
         try {
+            // Don't overwrite a migrated file, if one exists
+            var file = manager.getFile(MapWorkspaceManager.KEY);
+            if (file.isFile()) return;
+
+            var legacyFile = manager.getFile(MapWorkspaceManager.LEGACY_KEY);
+            if (!legacyFile.isFile()) return;
+
             Files.move(legacyFile, file);
             CreatorTools.LOGGER.warn("Migrated map workspaces from legacy path '{}' to '{}'", legacyFile, file);
         } catch (IOException e) {
-            CreatorTools.LOGGER.warn("Failed to migrate map workspaces from legacy path '{}'", legacyFile, e);
+            CreatorTools.LOGGER.warn("Failed to migrate map workspaces from legacy path 'data/plasmid:map_workspaces.nbt'", e);
         }
     }
 }
