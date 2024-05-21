@@ -2,6 +2,7 @@ package xyz.nucleoid.creator_tools;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import org.apache.logging.log4j.LogManager;
@@ -27,6 +28,8 @@ public final class CreatorTools implements ModInitializer {
             MapManageCommand.register(dispatcher);
             MapMetadataCommand.register(dispatcher);
         });
+
+        ServerLifecycleEvents.SERVER_STARTED.register(MapWorkspaceManager::migratePath);
 
         ServerTickEvents.START_SERVER_TICK.register(server -> {
             MapWorkspaceManager.get(server).tick();

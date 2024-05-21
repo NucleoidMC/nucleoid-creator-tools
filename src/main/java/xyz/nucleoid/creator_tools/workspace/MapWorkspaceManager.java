@@ -1,5 +1,6 @@
 package xyz.nucleoid.creator_tools.workspace;
 
+import com.google.common.io.Files;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.nbt.NbtCompound;
@@ -14,6 +15,7 @@ import net.minecraft.world.PersistentState;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionTypes;
 import org.jetbrains.annotations.Nullable;
+import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditor;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditorManager;
 import xyz.nucleoid.fantasy.Fantasy;
@@ -22,14 +24,15 @@ import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
 import xyz.nucleoid.map_templates.BlockBounds;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
 public final class MapWorkspaceManager extends PersistentState {
-    // We keep this legacy namespace for compatibility purposes, and there's not much reason to change it.
-    public static final String KEY = "plasmid:map_workspaces";
+    private static final String LEGACY_KEY = "plasmid:map_workspaces";
+    public static final String KEY = CreatorTools.ID + "_map_workspaces";
 
     private static final BlockBounds DEFAULT_BOUNDS = BlockBounds.of(-16, 64, -16, 16, 96, 16);
 
@@ -215,5 +218,27 @@ public final class MapWorkspaceManager extends PersistentState {
         return new RuntimeWorldConfig()
                 .setDimensionType(DimensionTypes.OVERWORLD)
                 .setGenerator(generator);
+    }
+
+    /**
+     * Migrates the file storing map workspaces to a path that doesn't contain a colon.
+     * This fixes an issue on Windows where saving map workspaces would always fail.
+     */
+    public static void migratePath(MinecraftServer server) {
+        var manager = server.getOverworld().getPersistentStateManager();
+
+        try {
+            // Don't overwrite a migrated file, if one exists
+            var file = manager.getFile(MapWorkspaceManager.KEY);
+            if (file.isFile()) return;
+
+            var legacyFile = manager.getFile(MapWorkspaceManager.LEGACY_KEY);
+            if (!legacyFile.isFile()) return;
+
+            Files.move(legacyFile, file);
+            CreatorTools.LOGGER.warn("Migrated map workspaces from legacy path '{}' to '{}'", legacyFile, file);
+        } catch (IOException e) {
+            CreatorTools.LOGGER.warn("Failed to migrate map workspaces from legacy path 'data/plasmid:map_workspaces.nbt'", e);
+        }
     }
 }
