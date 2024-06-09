@@ -43,7 +43,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 
 public final class MapMetadataCommand {
     public static final DynamicCommandExceptionType ENTITY_TYPE_NOT_FOUND = new DynamicCommandExceptionType(arg ->
-            Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.entity_type_not_found", arg)
+            Text.stringifiedTranslatable("text.nucleoid_creator_tools.map.region.entity.filter.entity_type_not_found", arg)
     );
 
     public static final SimpleCommandExceptionType MAP_NOT_HERE = MapManageCommand.MAP_NOT_HERE;
@@ -61,10 +61,8 @@ public final class MapMetadataCommand {
     );
 
     private static final DynamicCommandExceptionType MODIFY_EXPECTED_OBJECT_EXCEPTION = new DynamicCommandExceptionType(
-            arg -> Text.translatable("commands.data.modify.expected_object", arg)
+            arg -> Text.stringifiedTranslatable("commands.data.modify.expected_object", arg)
     );
-
-    private static final NbtTextFormatter NBT_FORMATTER = new NbtTextFormatter("  ", 0);
 
     // @formatter:off
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
@@ -210,7 +208,7 @@ public final class MapMetadataCommand {
 
     private static int renameRegions(CommandContext<ServerCommandSource> context, RegionPredicate predicate) throws CommandSyntaxException {
         var source = context.getSource();
-        var pos = source.getPlayer().getBlockPos();
+        var pos = source.getPlayerOrThrow().getBlockPos();
 
         var oldMarker = StringArgumentType.getString(context, "old");
         var newMarker = StringArgumentType.getString(context, "new");
@@ -219,7 +217,7 @@ public final class MapMetadataCommand {
 
         var regions = map.getRegions().stream()
                 .filter(region -> predicate.test(region, oldMarker, pos))
-                .collect(Collectors.toList());
+                .toList();
 
         for (var region : regions) {
             map.removeRegion(region);
@@ -239,7 +237,7 @@ public final class MapMetadataCommand {
 
         var regions = map.getRegions().stream()
                 .filter(region -> region.marker().equals(marker))
-                .collect(Collectors.toList());
+                .toList();
 
         source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.bounds.get.header", regions.size()).formatted(Formatting.BOLD), false);
 
@@ -255,10 +253,14 @@ public final class MapMetadataCommand {
         return Command.SINGLE_SUCCESS;
     }
 
+    private static Text formatNbt(final NbtElement data) {
+        return new NbtTextFormatter("  ", 0).apply(data);
+    }
+
     private static boolean executeRegionDataGet(CommandContext<ServerCommandSource> context, MapWorkspace map, WorkspaceRegion region) {
         context.getSource().sendFeedback(() -> {
             return withMapPrefix(map,
-                    Text.translatable("text.nucleoid_creator_tools.map.region.data.get", region.marker(), NBT_FORMATTER.apply(region.data()))
+                    Text.translatable("text.nucleoid_creator_tools.map.region.data.get", region.marker(), formatNbt(region.data()))
             );
         }, false);
         return false;
@@ -295,7 +297,7 @@ public final class MapMetadataCommand {
 
         var regions = map.getRegions().stream()
                 .filter(region -> region.bounds().contains(pos))
-                .collect(Collectors.toList());
+                .toList();
 
         for (var region : regions) {
             map.removeRegion(region);
@@ -348,9 +350,9 @@ public final class MapMetadataCommand {
                 .count();
 
         if (result == 0) {
-            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.add.error", map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.add.error", Text.of(map.getIdentifier())));
         } else {
-            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.add.success", result, map.getIdentifier()),
+            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.add.success", result, Text.of(map.getIdentifier())),
                     false);
         }
 
@@ -369,9 +371,9 @@ public final class MapMetadataCommand {
                 .count();
 
         if (result == 0) {
-            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.remove.error", map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.remove.error", Text.of(map.getIdentifier())));
         } else {
-            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.remove.success", result, map.getIdentifier()),
+            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.remove.success", result, Text.of(map.getIdentifier())),
                     false);
         }
 
@@ -385,9 +387,9 @@ public final class MapMetadataCommand {
         var type = getEntityType(context);
 
         if (!map.addEntityType(type.getRight())) {
-            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.already_present", type.getLeft(), map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.already_present", Text.of(type.getLeft()), Text.of(map.getIdentifier())));
         } else {
-            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.success", type.getLeft(), map.getIdentifier()), false);
+            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.success", Text.of(type.getLeft()), Text.of(map.getIdentifier())), false);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -399,9 +401,9 @@ public final class MapMetadataCommand {
         var type = getEntityType(context);
 
         if (!map.removeEntityType(type.getRight())) {
-            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.not_present", type.getLeft(), map.getIdentifier()));
+            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.not_present", Text.of(type.getLeft()), Text.of(map.getIdentifier())));
         } else {
-            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.success", type.getLeft(), map.getIdentifier()), false);
+            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.success", Text.of(type.getLeft()), Text.of(map.getIdentifier())), false);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -462,7 +464,7 @@ public final class MapMetadataCommand {
         var source = context.getSource();
         var map = getWorkspaceForSource(context.getSource());
         source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.data.get",
-                        getMapPrefix(map), NBT_FORMATTER.apply(map.getData())),
+                        getMapPrefix(map), formatNbt(map.getData())),
                 false);
         return Command.SINGLE_SUCCESS;
     }
@@ -473,8 +475,8 @@ public final class MapMetadataCommand {
         var path = NbtPathArgumentType.getNbtPath(context, "path");
         var element = getTagAt(map.getData(), path);
         source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.data.get.at",
-                        map.getIdentifier().toString(), path.toString(),
-                        NBT_FORMATTER.apply(element)),
+                        Text.of(map.getIdentifier()), path.toString(),
+                        formatNbt(element)),
                 false);
         return Command.SINGLE_SUCCESS;
     }
@@ -550,7 +552,7 @@ public final class MapMetadataCommand {
         return (context, builder) -> {
             var map = getWorkspaceForSource(context.getSource());
             return CommandSource.suggestMatching(
-                    map.getRegions().stream().map(region -> region.marker()),
+                    map.getRegions().stream().map(WorkspaceRegion::marker),
                     builder
             );
         };
@@ -559,7 +561,7 @@ public final class MapMetadataCommand {
     private static SuggestionProvider<ServerCommandSource> localRegionSuggestions() {
         return (context, builder) -> {
             var map = getWorkspaceForSource(context.getSource());
-            var sourcePos = context.getSource().getPlayer().getBlockPos();
+            var sourcePos = context.getSource().getPlayerOrThrow().getBlockPos();
             return CommandSource.suggestMatching(
                     map.getRegions().stream().filter(region -> region.bounds().contains(sourcePos))
                             .map(WorkspaceRegion::marker),
@@ -581,14 +583,14 @@ public final class MapMetadataCommand {
     private static Command<ServerCommandSource> executeInRegions(String message, RegionExecutor executor) {
         return context -> {
             var source = context.getSource();
-            var pos = source.getPlayer().getBlockPos();
+            var pos = source.getPlayerOrThrow().getBlockPos();
 
             var marker = StringArgumentType.getString(context, "marker");
 
             var map = getWorkspaceForSource(context.getSource());
             var regions = map.getRegions().stream()
                     .filter(region -> region.bounds().contains(pos) && region.marker().equals(marker))
-                    .collect(Collectors.toList());
+                    .toList();
 
             int count = 0;
             for (var region : regions) {

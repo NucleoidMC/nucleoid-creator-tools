@@ -15,7 +15,7 @@ import net.minecraft.world.dimension.DimensionOptions;
 
 public final class DimensionOptionsArgument {
     public static final DynamicCommandExceptionType DIMENSION_NOT_FOUND = new DynamicCommandExceptionType(arg ->
-            Text.translatable("text.nucleoid_creator_tools.dimension_options.dimension_not_found", arg)
+            Text.stringifiedTranslatable("text.nucleoid_creator_tools.dimension_options.dimension_not_found", arg)
     );
 
     public static RequiredArgumentBuilder<ServerCommandSource, Identifier> argument(String name) {
