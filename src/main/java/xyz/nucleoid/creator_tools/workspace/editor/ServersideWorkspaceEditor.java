@@ -1,15 +1,17 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
+import eu.pb4.polymer.virtualentity.api.ElementHolder;
+import eu.pb4.polymer.virtualentity.api.attachment.HolderAttachment;
+import eu.pb4.polymer.virtualentity.api.elements.TextDisplayElement;
 import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
-import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.nbt.visitor.NbtTextFormatter;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.Nullable;
 import com.google.common.base.Predicates;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
@@ -17,8 +19,8 @@ import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.PartialRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.RegionTraceMode;
 import xyz.nucleoid.map_templates.BlockBounds;
+import net.minecraft.screen.ScreenTexts;
 
-import java.util.UUID;
 import java.util.function.Predicate;
 
 public final class ServersideWorkspaceEditor implements WorkspaceEditor {
@@ -35,22 +37,11 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
     private Predicate<String> filter = NO_FILTER;
 
-    private final ArmorStandEntity markerEntity;
     private final Int2ObjectMap<Marker> regionToMarker = new Int2ObjectOpenHashMap<>();
-
-    private int nextMarkerId = -1;
 
     public ServersideWorkspaceEditor(ServerPlayerEntity player, MapWorkspace workspace) {
         this.player = player;
         this.workspace = workspace;
-
-        var markerEntity = new ArmorStandEntity(EntityType.ARMOR_STAND, player.getWorld());
-        markerEntity.setInvisible(true);
-        markerEntity.setInvulnerable(true);
-        markerEntity.setNoGravity(true);
-        markerEntity.setMarker(true);
-        markerEntity.setCustomNameVisible(true);
-        this.markerEntity = markerEntity;
     }
 
     @Override
@@ -139,17 +130,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
     @Override
     public void addRegion(WorkspaceRegion region) {
-        var marker = this.nextMarkerIds();
-        var markerPos = region.bounds().center();
-
-        var markerEntity = marker.applyTo(this.markerEntity);
-        markerEntity.setPos(markerPos.x, markerPos.y, markerPos.z);
-        markerEntity.setCustomName(Text.literal(region.marker()));
-
-        var networkHandler = this.player.networkHandler;
-        networkHandler.sendPacket(markerEntity.createSpawnPacket());
-        networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), markerEntity.getDataTracker().getChangedEntries()));
-
+        var marker = this.newMarker(region);
         this.regionToMarker.put(region.runtimeId(), marker);
     }
 
@@ -157,7 +138,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     public void removeRegion(WorkspaceRegion region) {
         var marker = this.regionToMarker.remove(region.runtimeId());
         if (marker != null) {
-            this.player.networkHandler.sendPacket(new EntitiesDestroyS2CPacket(marker.id()));
+            marker.destroy();
         }
     }
 
@@ -168,18 +149,24 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
             return;
         }
 
-        var markerEntity = marker.applyTo(this.markerEntity);
-        markerEntity.setCustomName(Text.literal(newRegion.marker()));
-        var dirty = markerEntity.getDataTracker().getDirtyEntries();
-        if (dirty != null) {
-            this.player.networkHandler.sendPacket(new EntityTrackerUpdateS2CPacket(marker.id(), dirty));
-        }
+        marker.update(newRegion, true, this.distanceSquaredToRegion(newRegion));
     }
 
-    private Marker nextMarkerIds() {
-        int id = this.nextMarkerId--;
-        var uuid = UUID.randomUUID();
-        return new Marker(id, uuid);
+    private Marker newMarker(WorkspaceRegion region) {
+        TextDisplayElement element = new TextDisplayElement();
+        element.setSeeThrough(true);
+        element.setTextOpacity((byte) 150);
+        element.setTextAlignment(DisplayEntity.TextDisplayEntity.TextAlignment.LEFT);
+        element.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
+        element.setLineWidth(350);
+
+        ElementHolder holder = new ElementHolder();
+        holder.addElement(element);
+        var attachment = SinglePlayerChunkAttachment.of(holder, this.player.getServerWorld(), region.bounds().center(), this.player);
+
+        var marker = new Marker(element, attachment);
+        marker.update(region, true, this.distanceSquaredToRegion(region));
+        return marker;
     }
 
     private void renderWorkspaceBounds() {
@@ -193,14 +180,12 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
             var regionBounds = region.bounds();
             var min = regionBounds.min();
             var max = regionBounds.max();
-            double distance = this.player.squaredDistanceTo(
-                    (min.getX() + max.getX()) / 2.0,
-                    (min.getY() + max.getY()) / 2.0,
-                    (min.getZ() + max.getZ()) / 2.0
-            );
+            double distance = this.distanceSquaredToRegion(region);
+            var marker = this.regionToMarker.get(region.runtimeId());
+            marker.update(region, false, distance);
 
             if (distance < 32 * 32) {
-                int color = colorForRegionMarker(region.marker());
+                int color = colorForRegionBorder(region.marker());
                 float red = (color >> 16 & 0xFF) / 255.0F;
                 float green = (color >> 8 & 0xFF) / 255.0F;
                 float blue = (color & 0xFF) / 255.0F;
@@ -208,6 +193,17 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
                 ParticleOutlineRenderer.render(this.player, min, max, red, green, blue);
             }
         }
+    }
+
+    private double distanceSquaredToRegion(WorkspaceRegion region) {
+        var regionBounds = region.bounds();
+        var min = regionBounds.min();
+        var max = regionBounds.max();
+        return this.player.squaredDistanceTo(
+                (min.getX() + max.getX()) / 2.0,
+                (min.getY() + max.getY()) / 2.0,
+                (min.getZ() + max.getZ()) / 2.0
+        );
     }
 
     private void renderTracingBounds() {
@@ -220,15 +216,54 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         }
     }
 
-    public static int colorForRegionMarker(String marker) {
+    public static int colorForRegionBorder(String marker) {
         return HashCommon.mix(marker.hashCode()) & 0xFFFFFF;
     }
 
-    static final record Marker(int id, UUID uuid) {
-        <T extends Entity> T applyTo(T entity) {
-            entity.setId(this.id);
-            entity.setUuid(this.uuid);
-            return entity;
+    public static int colorForRegionMarkerBackground(String marker) {
+        int opacity = 32;
+        return (HashCommon.mix(marker.hashCode()) & 0xFFFFFF) | (opacity << 24);
+    }
+
+    public static Text textForRegion(WorkspaceRegion region, boolean showDetails) {
+        MutableText text = Text.empty()
+                .append(Text.literal(region.marker()).formatted(Formatting.BOLD));
+
+        if (!region.data().isEmpty() && showDetails) {
+            text
+                    .append(ScreenTexts.LINE_BREAK)
+                    .append(new NbtTextFormatter("  ", 0).apply(region.data()));
+        }
+
+        return text;
+    }
+
+    static final class Marker {
+        private final TextDisplayElement text;
+        private final HolderAttachment billboardAttachment;
+        private boolean showingDetails;
+
+        Marker(TextDisplayElement text, HolderAttachment billboardAttachment) {
+            this.text = text;
+            this.billboardAttachment = billboardAttachment;
+            this.showingDetails = false;
+        }
+
+        void update(WorkspaceRegion region, boolean regionDirty, double distanceSquared) {
+            // Only display NBT if within 32 blocks (distance from which to render particles, too)
+            var shouldShowDetails = distanceSquared < 32 * 32;
+            var dirty = (shouldShowDetails != showingDetails) || regionDirty;
+            showingDetails = shouldShowDetails;
+
+            if (dirty) {
+                this.text.setText(textForRegion(region, showingDetails));
+                this.text.setBackground(colorForRegionMarkerBackground(region.marker()));
+                this.text.tick();
+            }
+        }
+
+        void destroy() {
+            this.billboardAttachment.destroy();
         }
     }
 }
