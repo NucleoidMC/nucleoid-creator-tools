@@ -62,7 +62,7 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
         if (regions == null || regions.isEmpty()) return -1;
 
         var region = regions.get(0);
-        return ServersideWorkspaceEditor.colorForRegionMarker(region);
+        return ServersideWorkspaceEditor.colorForRegionBorder(region);
     }
 
     @Override
