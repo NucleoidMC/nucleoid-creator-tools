@@ -23,6 +23,7 @@ import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.visitor.NbtTextFormatter;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
@@ -81,14 +82,14 @@ public final class MapMetadataCommand {
                         .then(literal("all")
                             .then(argument("old", StringArgumentType.word()).suggests(regionSuggestions())
                             .then(argument("new", StringArgumentType.word())
-                            .executes(context -> renameRegions(context, (region, oldMarker, pos) -> region.marker().equals(oldMarker)))
+                            .executes(context -> renameRegions(context, (region, oldMarker, playerBounds) -> region.marker().equals(oldMarker)))
                         )))
                         .then(literal("here")
                             .then(argument("old", StringArgumentType.word()).suggests(localRegionSuggestions())
                             .then(argument("new", StringArgumentType.word())
                             .executes(
-                                context -> renameRegions(context, (region, oldMarker, pos) -> region.marker().equals(oldMarker)
-                                        && region.bounds().contains(pos))
+                                context -> renameRegions(context, (region, oldMarker, playerBounds) -> region.marker().equals(oldMarker)
+                                        && region.bounds().intersects(playerBounds))
                             )
                         )))
                     )
@@ -206,17 +207,20 @@ public final class MapMetadataCommand {
         return Command.SINGLE_SUCCESS;
     }
 
+    private static BlockBounds getPlayerBounds(ServerPlayerEntity player) {
+        return BlockBounds.of(player.getBlockPos(), player.getBlockPos().add(0, 1, 0));
+    }
+
     private static int renameRegions(CommandContext<ServerCommandSource> context, RegionPredicate predicate) throws CommandSyntaxException {
         var source = context.getSource();
-        var pos = source.getPlayerOrThrow().getBlockPos();
-
+        var playerBounds = getPlayerBounds(source.getPlayerOrThrow());
         var oldMarker = StringArgumentType.getString(context, "old");
         var newMarker = StringArgumentType.getString(context, "new");
 
         var map = getWorkspaceForSource(source);
 
         var regions = map.getRegions().stream()
-                .filter(region -> predicate.test(region, oldMarker, pos))
+                .filter(region -> predicate.test(region, oldMarker, playerBounds))
                 .toList();
 
         for (var region : regions) {
@@ -284,19 +288,19 @@ public final class MapMetadataCommand {
     }
 
     private static int removeRegionHere(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        return removeRegion(context, context.getSource().getPlayer().getBlockPos());
+        return removeRegion(context, getPlayerBounds(context.getSource().getPlayer()));
     }
 
     private static int removeRegionAt(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        return removeRegion(context, BlockPosArgumentType.getBlockPos(context, "pos"));
+        return removeRegion(context, BlockBounds.ofBlock(BlockPosArgumentType.getBlockPos(context, "pos")));
     }
 
-    private static int removeRegion(CommandContext<ServerCommandSource> context, BlockPos pos) throws CommandSyntaxException {
+    private static int removeRegion(CommandContext<ServerCommandSource> context, BlockBounds removalBouns) throws CommandSyntaxException {
         var source = context.getSource();
         var map = getWorkspaceForSource(source);
 
         var regions = map.getRegions().stream()
-                .filter(region -> region.bounds().contains(pos))
+                .filter(region -> region.bounds().intersects(removalBouns))
                 .toList();
 
         for (var region : regions) {
@@ -561,9 +565,9 @@ public final class MapMetadataCommand {
     private static SuggestionProvider<ServerCommandSource> localRegionSuggestions() {
         return (context, builder) -> {
             var map = getWorkspaceForSource(context.getSource());
-            var sourcePos = context.getSource().getPlayerOrThrow().getBlockPos();
+            var sourceBounds = getPlayerBounds(context.getSource().getPlayerOrThrow());
             return CommandSource.suggestMatching(
-                    map.getRegions().stream().filter(region -> region.bounds().contains(sourcePos))
+                    map.getRegions().stream().filter(region -> region.bounds().intersects(sourceBounds))
                             .map(WorkspaceRegion::marker),
                     builder
             );
@@ -583,13 +587,13 @@ public final class MapMetadataCommand {
     private static Command<ServerCommandSource> executeInRegions(String message, RegionExecutor executor) {
         return context -> {
             var source = context.getSource();
-            var pos = source.getPlayerOrThrow().getBlockPos();
+            var playerBounds = getPlayerBounds(source.getPlayerOrThrow());
 
             var marker = StringArgumentType.getString(context, "marker");
 
             var map = getWorkspaceForSource(context.getSource());
             var regions = map.getRegions().stream()
-                    .filter(region -> region.bounds().contains(pos) && region.marker().equals(marker))
+                    .filter(region -> region.bounds().intersects(playerBounds) && region.marker().equals(marker))
                     .toList();
 
             int count = 0;
@@ -625,6 +629,6 @@ public final class MapMetadataCommand {
 
     @FunctionalInterface
     private interface RegionPredicate {
-        boolean test(WorkspaceRegion region, String marker, BlockPos pos);
+        boolean test(WorkspaceRegion region, String marker, BlockBounds playerBounds);
     }
 }
