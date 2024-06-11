@@ -126,11 +126,15 @@ public final class MapMetadataCommand {
                     ))
                     .then(literal("remove")
                         .then(literal("here")
-                            .executes(MapMetadataCommand::removeRegionHere)
-                        )
+                            .then(argument("marker", StringArgumentType.word()).suggests(localRegionSuggestions())
+                            .executes(executeInRegions("Removed %d regions.", MapMetadataCommand::executeRemoveRegionsHere))
+                        ))
                         .then(literal("at")
                             .then(argument("pos", BlockPosArgumentType.blockPos())
-                            .executes(MapMetadataCommand::removeRegionAt)
+                            .executes(context -> {
+                                final var pos = BlockPosArgumentType.getBlockPos(context, "pos");
+                                return removeRegions(context, region -> region.bounds().contains(pos));
+                            })
                         ))
                         .then(literal("all")
                             .then(argument("marker", StringArgumentType.word()).suggests(regionSuggestions())
@@ -299,13 +303,9 @@ public final class MapMetadataCommand {
         return path.remove(region.data()) > 0;
     }
 
-    private static int removeRegionHere(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        final var playerBounds = getPlayerBounds(context.getSource().getPlayerOrThrow());
-        return removeRegions(context, region -> region.bounds().intersects(playerBounds));
-    }
-
-    private static int removeRegionAt(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
-        return removeRegions(context, region -> region.bounds().contains(BlockPosArgumentType.getBlockPos(context, "pos")));
+    private static boolean executeRemoveRegionsHere(CommandContext<ServerCommandSource> context, MapWorkspace map, WorkspaceRegion region) {
+        map.removeRegion(region);
+        return true;
     }
 
     private static int removeRegions(CommandContext<ServerCommandSource> context, Predicate<WorkspaceRegion> predicate) throws CommandSyntaxException {
