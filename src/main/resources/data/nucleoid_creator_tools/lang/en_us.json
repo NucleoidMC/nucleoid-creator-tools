@@ -47,6 +47,8 @@
   "text.nucleoid_creator_tools.map.open.map_already_exists": "Map with id '%s' already exists!",
   "text.nucleoid_creator_tools.map.open.success": "Opened workspace '%s'! Use %s to join this map",
   "text.nucleoid_creator_tools.map.origin.set": "Updated origin for workspace",
+  "text.nucleoid_creator_tools.map.region.reserved_name": "Region name '%s' is not allowed to begin with '+'.",
+  "text.nucleoid_creator_tools.map.region.selector.invalid": "Invalid region selector '%s'.",
   "text.nucleoid_creator_tools.map.region.add.success": "Added region '%s'.",
   "text.nucleoid_creator_tools.map.region.add.success.excited": "Added region '%s'!",
   "text.nucleoid_creator_tools.map.region.bounds.get": "%s to %s",
