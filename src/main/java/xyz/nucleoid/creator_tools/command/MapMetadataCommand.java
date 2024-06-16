@@ -279,7 +279,7 @@ public final class MapMetadataCommand {
         context.getSource().sendFeedback(() -> withMapPrefix(map,
                 Text.translatable("text.nucleoid_creator_tools.map.region.data.get", region.marker(), formatNbt(region.data()))
         ), false);
-        return false;
+        return true;
     }
 
     private static boolean executeRegionDataMerge(CommandContext<ServerCommandSource> context, MapWorkspace map, WorkspaceRegion region) {
@@ -615,9 +615,15 @@ public final class MapMetadataCommand {
             }
 
             if (count > 0) {
-                int finalCount = count;
-                source.sendFeedback(() -> withMapPrefix(map, Text.literal(String.format(message, finalCount))), false);
+                if (!message.isEmpty()) {
+                    int finalCount = count;
+                    source.sendFeedback(() -> withMapPrefix(map, Text.literal(String.format(message, finalCount))), false);
+                }
+            } else {
+                var text = Text.translatable("text.nucleoid_creator_tools.map.region.none_affected");
+                source.sendFeedback(() -> withMapPrefix(map, text), false);
             }
+
             return 2;
         };
     }
