@@ -3,11 +3,13 @@ package xyz.nucleoid.creator_tools.command;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.datafixers.util.Either;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
@@ -28,6 +30,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
+import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
@@ -35,8 +38,10 @@ import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
 import xyz.nucleoid.map_templates.BlockBounds;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -64,13 +69,119 @@ public final class MapMetadataCommand {
             arg -> Text.stringifiedTranslatable("commands.data.modify.expected_object", arg)
     );
 
+    public static final DynamicCommandExceptionType INVALID_REGION_SELECTOR = new DynamicCommandExceptionType(
+            arg -> Text.stringifiedTranslatable("text.nucleoid_creator_tools.map.region.selector.invalid", arg)
+    );
+
+    public static final DynamicCommandExceptionType RESERVED_REGION_NAME = new DynamicCommandExceptionType(
+            arg -> Text.stringifiedTranslatable("text.nucleoid_creator_tools.map.region.reserved_name", arg)
+    );
+
+    private enum SpecialRegionSelector {
+        ALL("all");
+
+        private final static String PREFIX = "+";
+        private final String name;
+
+        SpecialRegionSelector(String name) {
+            this.name = name;
+        }
+
+        public static Stream<String> suggestions() {
+            return Arrays.stream(values()).map(selector -> PREFIX + selector.name);
+        }
+    }
+
+    private record RegionSelector(Either<String, SpecialRegionSelector> inner) {
+        static RegionSelector special(SpecialRegionSelector selector) {
+            return new RegionSelector(Either.right(selector));
+        }
+
+        static RegionSelector named(String name) {
+            return new RegionSelector(Either.left(name));
+        }
+
+        public boolean matches(WorkspaceRegion region) {
+            // This is to make sure we don't miss this if we add more special selectors:
+            // noinspection ConstantValue
+            return this.inner.map(
+                    name -> region.marker().equals(name),
+                    special -> switch (special) {
+                        case ALL -> true;
+                    }
+            );
+        }
+    }
+
+    /**
+     * Get a region marker argument, throwing an error if the name is reserved.
+     *
+     * @throws CommandSyntaxException if the name is reserved
+     */
+    private static String getRegionMarkerArg(CommandContext<ServerCommandSource> ctx, String argName) throws CommandSyntaxException {
+        var str = StringArgumentType.getString(ctx, argName);
+
+        if (str.startsWith(SpecialRegionSelector.PREFIX)) {
+            throw RESERVED_REGION_NAME.create(str);
+        } else {
+            return str;
+        }
+    }
+
+    /**
+     * Create a region marker argument. This is different to a region _selector_ argument, as it must be a valid name
+     * (e.g. as used in commit or rename). It still suggests currently existing region names for convenience.
+     */
+    private static RequiredArgumentBuilder<ServerCommandSource, String> regionMarkerArg(String argName) {
+        return argument(argName, StringArgumentType.word()).suggests(globalRegionSuggestions(false));
+    }
+
+    /**
+     * Create a region selector argument, which can either be a name or a special selector like +all.
+     */
+    @SuppressWarnings("SameParameterValue") // We want to keep this general
+    private static RegionSelector getRegionSelectorArg(CommandContext<ServerCommandSource> ctx, String name) throws CommandSyntaxException {
+        var str = StringArgumentType.getString(ctx, name);
+
+        if (str.startsWith(SpecialRegionSelector.PREFIX)) {
+            var selector = Arrays.stream(SpecialRegionSelector.values())
+                    .filter(s -> s.name.equals(str.substring(1)))
+                    .findAny()
+                    .orElseThrow(() -> INVALID_REGION_SELECTOR.create(SpecialRegionSelector.PREFIX + str));
+            return RegionSelector.special(selector);
+        } else {
+            return RegionSelector.named(str);
+        }
+    }
+
+    private static RequiredArgumentBuilder<ServerCommandSource, String> regionSelectorArg(
+            String name,
+            SuggestionProvider<ServerCommandSource> suggestions
+    ) {
+        return argument(name, StringArgumentType.word()).suggests(suggestions);
+    }
+
+    @SuppressWarnings("SameParameterValue") // We want to keep this general
+    private static RequiredArgumentBuilder<ServerCommandSource, String> localRegionSelectorArg(String name) {
+        return regionSelectorArg(name, localRegionSuggestions());
+    }
+
+    @SuppressWarnings("SameParameterValue") // We want to keep this general
+    private static RequiredArgumentBuilder<ServerCommandSource, String> blockPosRegionSelectorArg(String name) {
+        return regionSelectorArg(name, blockPosRegionSuggestions());
+    }
+
+    private static RequiredArgumentBuilder<ServerCommandSource, String> globalRegionSelectorArg(String name) {
+        return regionSelectorArg(name, globalRegionSuggestions(true));
+    }
+
     // @formatter:off
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(
                 literal("map").requires(Permissions.require("nucleoid_creator_extras.map", 2))
                 .then(literal("region")
                     .then(literal("add")
-                        .then(argument("marker", StringArgumentType.word())
+                        .then(regionMarkerArg("marker")
                         .then(argument("min", BlockPosArgumentType.blockPos())
                         .then(argument("max", BlockPosArgumentType.blockPos())
                         .executes(MapMetadataCommand::addRegion)
@@ -79,37 +190,37 @@ public final class MapMetadataCommand {
                     )))))
                     .then(literal("rename")
                         .then(literal("all")
-                            .then(argument("old", StringArgumentType.word()).suggests(regionSuggestions())
-                            .then(argument("new", StringArgumentType.word())
+                            .then(globalRegionSelectorArg("old")
+                            .then(regionMarkerArg("new")
                             .executes(context -> {
-                                var oldMarker = StringArgumentType.getString(context, "old");
+                                var old = getRegionSelectorArg(context, "old");
                                 return renameRegions(
                                         context,
-                                        StringArgumentType.getString(context, "new"),
-                                        (r) -> r.marker().equals(oldMarker)
+                                        getRegionMarkerArg(context, "new"),
+                                        old::matches
                                 );
                             })
                         )))
                         .then(literal("here")
-                            .then(argument("old", StringArgumentType.word()).suggests(localRegionSuggestions())
-                            .then(argument("new", StringArgumentType.word())
+                            .then(globalRegionSelectorArg("old")
+                            .then(regionMarkerArg("new")
                             .executes(context -> {
-                                var oldMarker = StringArgumentType.getString(context, "old");
+                                var old = getRegionSelectorArg(context, "old");
                                 var playerBounds = getPlayerBounds(context.getSource().getPlayerOrThrow());
                                 return renameRegions(
                                         context,
-                                        StringArgumentType.getString(context, "new"),
-                                        (r) -> r.marker().equals(oldMarker) && r.bounds().intersects(playerBounds)
+                                        getRegionMarkerArg(context, "new"),
+                                        (r) -> old.matches(r) && r.bounds().intersects(playerBounds)
                                 );
                             })
                         )))
                     )
                     .then(literal("bounds")
-                        .then(argument("marker", StringArgumentType.word()).suggests(regionSuggestions())
+                        .then(globalRegionSelectorArg("marker")
                         .executes(MapMetadataCommand::getRegionBounds))
                     )
                     .then(literal("data")
-                        .then(argument("marker", StringArgumentType.word()).suggests(localRegionSuggestions())
+                        .then(localRegionSelectorArg("marker")
                             .then(literal("get").executes(executeInRegions("", MapMetadataCommand::executeRegionDataGet)))
                             .then(literal("merge")
                                 .then(argument("nbt", NbtCompoundArgumentType.nbtCompound())
@@ -126,26 +237,28 @@ public final class MapMetadataCommand {
                     ))
                     .then(literal("remove")
                         .then(literal("here")
-                            .then(argument("marker", StringArgumentType.word()).suggests(localRegionSuggestions())
-                            .executes(executeInRegions("Removed %d regions.", MapMetadataCommand::executeRemoveRegionsHere))
+                            .then(localRegionSelectorArg("marker")
+                            .executes(executeInRegions("Removed %d regions.", MapMetadataCommand::executeRemoveNamedRegionsHere))
                         ))
                         .then(literal("at")
                             .then(argument("pos", BlockPosArgumentType.blockPos())
+                            .then(blockPosRegionSelectorArg("marker")
                             .executes(context -> {
                                 final var pos = BlockPosArgumentType.getBlockPos(context, "pos");
-                                return removeRegions(context, region -> region.bounds().contains(pos));
+                                final var selector = getRegionSelectorArg(context, "marker");
+                                return removeRegions(context, r -> selector.matches(r) && r.bounds().contains(pos));
                             })
-                        ))
+                        )))
                         .then(literal("all")
-                            .then(argument("marker", StringArgumentType.word()).suggests(regionSuggestions())
+                            .then(globalRegionSelectorArg("marker")
                             .executes(context -> {
-                                final var marker = StringArgumentType.getString(context, "marker");
-                                return removeRegions(context, r -> r.marker().equals(marker));
+                                final var selector = getRegionSelectorArg(context, "marker");
+                                return removeRegions(context, selector::matches);
                             })
                         ))
                     )
                     .then(literal("commit")
-                        .then(argument("marker", StringArgumentType.word())
+                        .then(regionMarkerArg("marker")
                         .executes(MapMetadataCommand::commitRegion)
                         .then(argument("data", NbtCompoundArgumentType.nbtCompound())
                         .executes(context -> commitRegion(context, NbtCompoundArgumentType.getNbtCompound(context, "data")))
@@ -218,7 +331,7 @@ public final class MapMetadataCommand {
     private static int addRegion(CommandContext<ServerCommandSource> context, NbtCompound data) throws CommandSyntaxException {
         var source = context.getSource();
 
-        var marker = StringArgumentType.getString(context, "marker");
+        var marker = getRegionMarkerArg(context, "marker");
         var min = BlockPosArgumentType.getBlockPos(context, "min");
         var max = BlockPosArgumentType.getBlockPos(context, "max");
 
@@ -255,10 +368,9 @@ public final class MapMetadataCommand {
         var source = context.getSource();
         var map = getWorkspaceForSource(source);
 
-        var marker = StringArgumentType.getString(context, "marker");
-
+        var regionSelector = getRegionSelectorArg(context, "marker");
         var regions = map.getRegions().stream()
-                .filter(region -> region.marker().equals(marker))
+                .filter(regionSelector::matches)
                 .toList();
 
         source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.region.bounds.get.header", regions.size()).formatted(Formatting.BOLD), false);
@@ -303,9 +415,8 @@ public final class MapMetadataCommand {
         return path.remove(region.data()) > 0;
     }
 
-    private static boolean executeRemoveRegionsHere(CommandContext<ServerCommandSource> context, MapWorkspace map, WorkspaceRegion region) {
-        map.removeRegion(region);
-        return true;
+    private static boolean executeRemoveNamedRegionsHere(CommandContext<ServerCommandSource> context, MapWorkspace map, WorkspaceRegion region) {
+        return map.removeRegion(region);
     }
 
     private static int removeRegions(CommandContext<ServerCommandSource> context, Predicate<WorkspaceRegion> predicate) throws CommandSyntaxException {
@@ -333,7 +444,7 @@ public final class MapMetadataCommand {
         var source = context.getSource();
         var player = source.getPlayer();
 
-        var marker = StringArgumentType.getString(context, "marker");
+        var marker = getRegionMarkerArg(context, "marker");
 
         var workspaceManager = MapWorkspaceManager.get(source.getServer());
         var editor = workspaceManager.getEditorFor(player);
@@ -565,11 +676,28 @@ public final class MapMetadataCommand {
         return (ctx, builder) -> CommandSource.suggestIdentifiers(Registries.ENTITY_TYPE.getIds(), builder);
     }
 
-    private static SuggestionProvider<ServerCommandSource> regionSuggestions() {
+    private static SuggestionProvider<ServerCommandSource> globalRegionSuggestions(boolean includeSpecial) {
         return (context, builder) -> {
             var map = getWorkspaceForSource(context.getSource());
+            var regions = map.getRegions().stream().map(WorkspaceRegion::marker);
             return CommandSource.suggestMatching(
-                    map.getRegions().stream().map(WorkspaceRegion::marker),
+                    includeSpecial ? Stream.concat(SpecialRegionSelector.suggestions(), regions) : regions,
+                    builder
+            );
+        };
+    }
+
+    private static Stream<String> getRegionMarkersAtBlockPos(MapWorkspace workspace, BlockPos pos) {
+        return workspace.getRegions().stream().filter(region -> region.bounds().contains(pos)).map(WorkspaceRegion::marker);
+    }
+
+    private static SuggestionProvider<ServerCommandSource> blockPosRegionSuggestions() {
+        return (context, builder) -> {
+            var map = getWorkspaceForSource(context.getSource());
+            var pos = BlockPosArgumentType.getBlockPos(context, "pos");
+            var localRegions = getRegionMarkersAtBlockPos(map, pos);
+            return CommandSource.suggestMatching(
+                    Stream.concat(SpecialRegionSelector.suggestions(), localRegions),
                     builder
             );
         };
@@ -578,10 +706,10 @@ public final class MapMetadataCommand {
     private static SuggestionProvider<ServerCommandSource> localRegionSuggestions() {
         return (context, builder) -> {
             var map = getWorkspaceForSource(context.getSource());
-            var sourceBounds = getPlayerBounds(context.getSource().getPlayerOrThrow());
+            var sourcePos = context.getSource().getPlayerOrThrow().getBlockPos();
+            var localRegions = getRegionMarkersAtBlockPos(map, sourcePos);
             return CommandSource.suggestMatching(
-                    map.getRegions().stream().filter(region -> region.bounds().intersects(sourceBounds))
-                            .map(WorkspaceRegion::marker),
+                    Stream.concat(SpecialRegionSelector.suggestions(), localRegions),
                     builder
             );
         };
@@ -601,12 +729,12 @@ public final class MapMetadataCommand {
         return context -> {
             var source = context.getSource();
             var playerBounds = getPlayerBounds(source.getPlayerOrThrow());
-
-            var marker = StringArgumentType.getString(context, "marker");
+            var regionSelector = getRegionSelectorArg(context, "marker");
 
             var map = getWorkspaceForSource(context.getSource());
             var regions = map.getRegions().stream()
-                    .filter(region -> region.bounds().intersects(playerBounds) && region.marker().equals(marker))
+                    .filter(region -> region.bounds().intersects(playerBounds))
+                    .filter(regionSelector::matches)
                     .toList();
 
             int count = 0;
