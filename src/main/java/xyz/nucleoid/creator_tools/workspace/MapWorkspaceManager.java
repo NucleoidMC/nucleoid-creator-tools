@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -52,7 +53,7 @@ public final class MapWorkspaceManager extends PersistentState {
     public static MapWorkspaceManager get(MinecraftServer server) {
         var type = new PersistentState.Type<>(
                 () -> new MapWorkspaceManager(server),
-                nbt -> MapWorkspaceManager.readNbt(server, nbt),
+                (nbt, registries) -> MapWorkspaceManager.readNbt(server, nbt, registries),
                 null
         );
 
@@ -144,27 +145,30 @@ public final class MapWorkspaceManager extends PersistentState {
         return this.workspacesById.values();
     }
 
-    private static MapWorkspaceManager readNbt(MinecraftServer server, NbtCompound nbt) {
+    private static MapWorkspaceManager readNbt(MinecraftServer server, NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         var manager = new MapWorkspaceManager(server);
 
         for (var key : nbt.getKeys()) {
-            var identifier = new Identifier(key);
-            var root = nbt.getCompound(key);
+            var identifier = Identifier.tryParse(key);
 
-            var worldHandle = manager.getOrCreateDimension(identifier, manager.createDefaultConfig());
-            worldHandle.setTickWhenEmpty(false);
+            if (identifier != null) {
+                var root = nbt.getCompound(key);
 
-            var workspace = MapWorkspace.deserialize(worldHandle, root);
-            manager.workspacesById.put(identifier, workspace);
-            manager.workspacesByDimension.put(worldHandle.asWorld().getRegistryKey(), workspace);
-            manager.editorManager.addWorkspace(workspace);
+                var worldHandle = manager.getOrCreateDimension(identifier, manager.createDefaultConfig());
+                worldHandle.setTickWhenEmpty(false);
+
+                var workspace = MapWorkspace.deserialize(worldHandle, root);
+                manager.workspacesById.put(identifier, workspace);
+                manager.workspacesByDimension.put(worldHandle.asWorld().getRegistryKey(), workspace);
+                manager.editorManager.addWorkspace(workspace);
+            }
         }
 
         return manager;
     }
 
     @Override
-    public NbtCompound writeNbt(NbtCompound nbt) {
+    public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         for (var entry : this.workspacesById.entrySet()) {
             String key = entry.getKey().toString();
             nbt.put(key, entry.getValue().serialize(new NbtCompound()));
@@ -180,7 +184,7 @@ public final class MapWorkspaceManager extends PersistentState {
     private RuntimeWorldHandle getOrCreateDimension(Identifier identifier, RuntimeWorldConfig config) {
         this.applyDefaultsToConfig(config);
 
-        var dimensionId = new Identifier(identifier.getNamespace(), "workspace_" + identifier.getPath());
+        var dimensionId = identifier.withPrefixedPath("workspace_");
         return Fantasy.get(this.server).getOrOpenPersistentWorld(dimensionId, config);
     }
 
@@ -192,7 +196,7 @@ public final class MapWorkspaceManager extends PersistentState {
         var serverRules = MapWorkspaceManager.this.server.getGameRules();
         var workspaceRules = config.getGameRules();
 
-        GameRules.accept(new GameRules.Visitor() {
+        serverRules.accept(new GameRules.Visitor() {
             @Override
             public void visitInt(GameRules.Key<GameRules.IntRule> key, GameRules.Type<GameRules.IntRule> type) {
                 var value = serverRules.get(key);
@@ -213,7 +217,7 @@ public final class MapWorkspaceManager extends PersistentState {
 
     private RuntimeWorldConfig createDefaultConfig() {
         var registries = this.server.getRegistryManager();
-        var generator = new VoidChunkGenerator(registries.get(RegistryKeys.BIOME));
+        var generator = new VoidChunkGenerator(registries.getOrThrow(RegistryKeys.BIOME));
 
         return new RuntimeWorldConfig()
                 .setDimensionType(DimensionTypes.OVERWORLD)
@@ -229,10 +233,12 @@ public final class MapWorkspaceManager extends PersistentState {
 
         try {
             // Don't overwrite a migrated file, if one exists
-            var file = manager.getFile(MapWorkspaceManager.KEY);
+            var path = manager.getFile(MapWorkspaceManager.KEY);
+            var file = path.toFile();
             if (file.isFile()) return;
 
-            var legacyFile = manager.getFile(MapWorkspaceManager.LEGACY_KEY);
+            var legacyPath = manager.getFile(MapWorkspaceManager.LEGACY_KEY);
+            var legacyFile = legacyPath.toFile();
             if (!legacyFile.isFile()) return;
 
             Files.move(legacyFile, file);

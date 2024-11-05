@@ -388,7 +388,7 @@ public final class MapMetadataCommand {
     }
 
     private static Text formatNbt(final NbtElement data) {
-        return new NbtTextFormatter("  ", 0).apply(data);
+        return new NbtTextFormatter("  ").apply(data);
     }
 
     private static boolean executeRegionDataGet(CommandContext<ServerCommandSource> context, MapWorkspace map, WorkspaceRegion region) {
@@ -669,7 +669,7 @@ public final class MapMetadataCommand {
     private static Pair<Identifier, EntityType<?>> getEntityType(CommandContext<ServerCommandSource> context) throws
             CommandSyntaxException {
         var id = IdentifierArgumentType.getIdentifier(context, "entity_type");
-        return new Pair<>(id, Registries.ENTITY_TYPE.getOrEmpty(id).orElseThrow(() -> ENTITY_TYPE_NOT_FOUND.create(id)));
+        return new Pair<>(id, Registries.ENTITY_TYPE.getOptionalValue(id).orElseThrow(() -> ENTITY_TYPE_NOT_FOUND.create(id)));
     }
 
     private static SuggestionProvider<ServerCommandSource> entityTypeSuggestions() {

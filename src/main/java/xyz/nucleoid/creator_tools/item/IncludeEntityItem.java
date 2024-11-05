@@ -7,12 +7,13 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.Items;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public final class IncludeEntityItem extends Item implements PolymerItem {
     public IncludeEntityItem(Settings settings) {
@@ -34,7 +35,7 @@ public final class IncludeEntityItem extends Item implements PolymerItem {
             if (workspace != null) {
                 if (!workspace.getBounds().contains(entity.getBlockPos())) {
                     user.sendMessage(
-                            Text.translatable(stack.getTranslationKey() + ".target_not_in_map", workspace.getIdentifier())
+                            Text.translatable("item.nucleoid_creator_tools.include_entity.target_not_in_map", workspace.getIdentifier())
                                     .formatted(Formatting.RED),
                             false);
                     return ActionResult.FAIL;
@@ -43,17 +44,17 @@ public final class IncludeEntityItem extends Item implements PolymerItem {
                 if (workspace.containsEntity(entity.getUuid())) {
                     workspace.removeEntity(entity.getUuid());
                     user.sendMessage(
-                            Text.translatable(stack.getTranslationKey() + ".removed", workspace.getIdentifier()),
+                            Text.translatable("item.nucleoid_creator_tools.include_entity.removed", workspace.getIdentifier()),
                             true);
                 } else {
                     workspace.addEntity(entity.getUuid());
                     user.sendMessage(
-                            Text.translatable(stack.getTranslationKey() + ".added", workspace.getIdentifier()),
+                            Text.translatable("item.nucleoid_creator_tools.include_entity.added", workspace.getIdentifier()),
                             true);
                 }
                 return ActionResult.SUCCESS;
             } else {
-                user.sendMessage(Text.translatable(stack.getTranslationKey() + ".player_not_in_map").formatted(Formatting.RED),
+                user.sendMessage(Text.translatable("item.nucleoid_creator_tools.include_entity.player_not_in_map").formatted(Formatting.RED),
                         false);
                 return ActionResult.FAIL;
             }
@@ -63,7 +64,12 @@ public final class IncludeEntityItem extends Item implements PolymerItem {
     }
 
     @Override
-    public Item getPolymerItem(ItemStack itemStack, ServerPlayerEntity player) {
+    public Item getPolymerItem(ItemStack itemStack, PacketContext context) {
         return Items.DEBUG_STICK;
+    }
+
+    @Override
+    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
+        return null;
     }
 }

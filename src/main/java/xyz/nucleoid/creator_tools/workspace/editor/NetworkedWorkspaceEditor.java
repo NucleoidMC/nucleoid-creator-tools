@@ -2,14 +2,19 @@ package xyz.nucleoid.creator_tools.workspace.editor;
 
 import java.util.stream.Collectors;
 
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceBoundsPayload;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceDataPayload;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceLeavePayload;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceRegionPayload;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceRegionRemovePayload;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.s2c.WorkspaceEnterS2CPayload;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.s2c.WorkspaceRegionsS2CPayload;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 /**
@@ -26,42 +31,29 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
 
     @Override
     public void onEnter() {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_ENTER_ID)) {
-            var buf = PacketByteBufs.create();
-
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            WorkspaceNetworking.writeBounds(buf, this.workspace.getBounds());
-            buf.writeIdentifier(this.workspace.getWorld().getRegistryKey().getValue());
-            buf.writeNbt(this.workspace.getData());
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_ENTER_ID, buf);
+        if (this.canSendPacket(WorkspaceEnterS2CPayload.ID)) {
+            this.sendPacket(new WorkspaceEnterS2CPayload(
+                    this.workspace.getIdentifier(),
+                    this.workspace.getBounds(),
+                    this.workspace.getWorld().getRegistryKey().getValue(),
+                    this.workspace.getData()));
         }
 
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGIONS_ID)) {
-            var groups = this.workspace.getRegions().stream().collect(Collectors.groupingBy(WorkspaceRegion::marker));
+        if (this.canSendPacket(WorkspaceRegionsS2CPayload.ID)) {
+            var groups = this.workspace.getRegions().stream()
+                    .collect(Collectors.groupingBy(WorkspaceRegion::marker,
+                            Collectors.mapping(WorkspaceRegionsS2CPayload.Entry::fromRegion, Collectors.toList())));
 
             for (var entry : groups.entrySet()) {
-                var buf = PacketByteBufs.create();
-
-                buf.writeString(entry.getKey());
-
-                for (var region : entry.getValue()) {
-                    buf.writeVarInt(region.runtimeId());
-                    WorkspaceNetworking.writeBounds(buf, region.bounds());
-                    buf.writeNbt(region.data());
-                }
-
-                this.sendPacket(WorkspaceNetworking.WORKSPACE_REGIONS_ID, buf);
+                this.sendPacket(new WorkspaceRegionsS2CPayload(entry.getKey(), entry.getValue()));
             }
         }
     }
 
     @Override
     public void onLeave() {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_LEAVE_ID)) {
-            var buf = PacketByteBufs.create();
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_LEAVE_ID, buf);
+        if (this.canSendPacket(WorkspaceLeavePayload.ID)) {
+            this.sendPacket(new WorkspaceLeavePayload(this.workspace.getIdentifier()));
         }
     }
 
@@ -72,10 +64,8 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
 
     @Override
     public void removeRegion(WorkspaceRegion region) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGION_REMOVE_ID)) {
-            var buf = PacketByteBufs.create();
-            buf.writeVarInt(region.runtimeId());
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_REGION_REMOVE_ID, buf);
+        if (this.canSendPacket(WorkspaceRegionRemovePayload.ID)) {
+            this.sendPacket(new WorkspaceRegionRemovePayload(region.runtimeId()));
         }
     }
 
@@ -86,44 +76,29 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
 
     @Override
     public void setBounds(BlockBounds bounds) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_BOUNDS_ID)) {
-            var buf = PacketByteBufs.create();
-
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            WorkspaceNetworking.writeBounds(buf, bounds);
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_BOUNDS_ID, buf);
+        if (this.canSendPacket(WorkspaceBoundsPayload.ID)) {
+            this.sendPacket(new WorkspaceBoundsPayload(this.workspace.getIdentifier(), bounds));
         }
     }
 
     @Override
     public void setData(NbtCompound data) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_DATA_ID)) {
-            var buf = PacketByteBufs.create();
-
-            buf.writeIdentifier(this.workspace.getIdentifier());
-            buf.writeNbt(data);
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_DATA_ID, buf);
+        if (this.canSendPacket(WorkspaceDataPayload.ID)) {
+            this.sendPacket(new WorkspaceDataPayload(this.workspace.getIdentifier(), data));
         }
     }
 
-    private boolean canSendPacket(Identifier channel) {
+    private boolean canSendPacket(CustomPayload.Id<?> channel) {
         return ServerPlayNetworking.canSend(this.player, channel);
     }
 
-    private void sendPacket(Identifier channel, PacketByteBuf buf) {
-        ServerPlayNetworking.send(this.player, channel, buf);
+    private void sendPacket(CustomPayload payload) {
+        ServerPlayNetworking.send(this.player, payload);
     }
 
     private boolean sendRegionPacket(WorkspaceRegion region) {
-        if (this.canSendPacket(WorkspaceNetworking.WORKSPACE_REGION_ID)) {
-            var buf = PacketByteBufs.create();
-
-            buf.writeVarInt(region.runtimeId());
-            WorkspaceNetworking.writeRegion(buf, region);
-
-            this.sendPacket(WorkspaceNetworking.WORKSPACE_REGION_ID, buf);
+        if (this.canSendPacket(WorkspaceRegionPayload.ID)) {
+            this.sendPacket(new WorkspaceRegionPayload(region));
             return true;
         }
 

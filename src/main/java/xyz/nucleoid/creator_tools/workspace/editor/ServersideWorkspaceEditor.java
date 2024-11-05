@@ -232,7 +232,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         if (!region.data().isEmpty() && showDetails) {
             text
                     .append(ScreenTexts.LINE_BREAK)
-                    .append(new NbtTextFormatter("  ", 0).apply(region.data()));
+                    .append(new NbtTextFormatter("  ").apply(region.data()));
         }
 
         return text;

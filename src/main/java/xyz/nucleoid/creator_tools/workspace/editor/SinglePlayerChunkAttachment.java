@@ -65,7 +65,7 @@ public class SinglePlayerChunkAttachment implements HolderAttachment {
         assert currentlyTracking.size() <= 1;
 
         ServerPlayerEntity watching = null;
-        for (ServerPlayerEntity x : ((ServerChunkManager) this.chunk.getWorld().getChunkManager()).threadedAnvilChunkStorage.getPlayersWatchingChunk(this.chunk.getPos(), false)) {
+        for (ServerPlayerEntity x : ((ServerChunkManager) this.chunk.getWorld().getChunkManager()).chunkLoadingManager.getPlayersWatchingChunk(this.chunk.getPos(), false)) {
             if (x.getUuid().equals(this.player)) {
                 watching = x;
                 break;

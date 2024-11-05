@@ -6,30 +6,32 @@ import java.util.function.Predicate;
 import org.jetbrains.annotations.Nullable;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.client.item.TooltipContext;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
+import xyz.nucleoid.creator_tools.component.CreatorToolsDataComponentTypes;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.editor.ServersideWorkspaceEditor;
+import xyz.nucleoid.packettweaker.PacketContext;
 
 public final class RegionVisibilityFilterItem extends Item implements PolymerItem {
-    private static final String REGION_KEY = "Region";
-
     public RegionVisibilityFilterItem(Settings settings) {
         super(settings);
     }
 
     @Override
-    public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
+    public ActionResult use(World world, PlayerEntity player, Hand hand) {
         if (world.isClient()) {
             return super.use(world, player, hand);
         }
@@ -44,29 +46,38 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
             Predicate<String> filter = regions == null || player.isSneaking() ? ServersideWorkspaceEditor.NO_FILTER : regions::contains;
             
             if (editor != null && editor.applyFilter(filter)) {
-                return TypedActionResult.success(stack);
+                return ActionResult.SUCCESS;
             }
         }
 
-        return TypedActionResult.pass(stack);
+        return ActionResult.PASS;
     }
 
     @Override
-    public Item getPolymerItem(ItemStack stack, ServerPlayerEntity player) {
+    public Item getPolymerItem(ItemStack stack, PacketContext context) {
         return Items.LEATHER_LEGGINGS;
     }
 
     @Override
-    public int getPolymerArmorColor(ItemStack stack, ServerPlayerEntity player) {
-        var regions = getRegions(stack);
-        if (regions == null || regions.isEmpty()) return -1;
-
-        var region = regions.get(0);
-        return ServersideWorkspaceEditor.colorForRegionBorder(region);
+    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
+        return null;
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, World world, List<Text> tooltip, TooltipContext context) {
+    public ItemStack getPolymerItemStack(ItemStack stack, TooltipType tooltipType, PacketContext context) {
+        var displayStack = PolymerItem.super.getPolymerItemStack(stack, tooltipType, context);
+        var regions = getRegions(stack);
+
+        if (regions != null && !regions.isEmpty()) {
+            var region = regions.get(0);
+            displayStack.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(ServersideWorkspaceEditor.colorForRegionBorder(region), false));
+        }
+
+        return displayStack;
+    }
+
+    @Override
+    public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
         var regions = getRegions(stack);
 
         if (regions != null) {
@@ -78,15 +89,7 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
 
     @Nullable
     private static List<String> getRegions(ItemStack stack) {
-        var nbt = stack.getNbt();
-        if (nbt == null) return null;
-
-        return switch (nbt.getType(REGION_KEY)) {
-            case NbtElement.LIST_TYPE -> nbt.getList(REGION_KEY, NbtElement.STRING_TYPE).stream()
-                .map(NbtElement::asString)
-                .toList();
-            case NbtElement.STRING_TYPE -> List.of(nbt.getString(REGION_KEY));
-            default -> null;
-        };
+        var component = stack.get(CreatorToolsDataComponentTypes.REGION_VISIBILITY_FILTER);
+        return component == null ? null : component.regions();
     }
 }

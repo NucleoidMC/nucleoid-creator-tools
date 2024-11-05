@@ -1,5 +1,6 @@
 package xyz.nucleoid.creator_tools;
 
+import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import xyz.nucleoid.map_templates.MapTemplate;
@@ -18,24 +19,24 @@ public final class MapTemplateExporter {
     private MapTemplateExporter() {
     }
 
-    public static MapTemplate loadFromExport(Identifier location) throws IOException {
+    public static MapTemplate loadFromExport(Identifier location, RegistryWrapper.WrapperLookup registries) throws IOException {
         var path = getExportPathFor(location);
         if (!Files.exists(path)) {
             throw new IOException("Export does not exist for " + location + "!");
         }
 
         try (var input = Files.newInputStream(path)) {
-            return MapTemplateSerializer.loadFrom(input);
+            return MapTemplateSerializer.loadFrom(input, registries);
         }
     }
 
-    public static CompletableFuture<Void> saveToExport(MapTemplate template, Identifier identifier) {
+    public static CompletableFuture<Void> saveToExport(MapTemplate template, Identifier identifier, RegistryWrapper.WrapperLookup registries) {
         return CompletableFuture.supplyAsync(() -> {
             var path = getExportPathFor(identifier);
             try {
                 Files.createDirectories(path.getParent());
                 try (var output = Files.newOutputStream(path)) {
-                    MapTemplateSerializer.saveTo(template, output);
+                    MapTemplateSerializer.saveTo(template, output, registries);
                     return null;
                 }
             } catch (IOException e) {

@@ -3,10 +3,10 @@ package xyz.nucleoid.creator_tools.workspace;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import net.fabricmc.fabric.api.util.NbtType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
@@ -219,12 +219,12 @@ public final class MapWorkspace {
     }
 
     public static MapWorkspace deserialize(RuntimeWorldHandle worldHandle, NbtCompound root) {
-        var identifier = new Identifier(root.getString("identifier"));
+        var identifier = Identifier.of(root.getString("identifier"));
         var bounds = BlockBounds.deserialize(root);
 
         var map = new MapWorkspace(worldHandle, identifier, bounds);
 
-        if (root.contains("origin", NbtType.INT_ARRAY)) {
+        if (root.contains("origin", NbtElement.INT_ARRAY_TYPE)) {
             var origin = root.getIntArray("origin");
             map.setOrigin(new BlockPos(origin[0], origin[1], origin[2]));
         } else {
@@ -232,7 +232,7 @@ public final class MapWorkspace {
         }
 
         // Regions
-        var regionList = root.getList("regions", NbtType.COMPOUND);
+        var regionList = root.getList("regions", NbtElement.COMPOUND_TYPE);
         for (int i = 0; i < regionList.size(); i++) {
             var regionRoot = regionList.getCompound(i);
             int runtimeId = map.nextRegionId();
@@ -241,12 +241,12 @@ public final class MapWorkspace {
 
         // Entities
         var entitiesTag = root.getCompound("entities");
-        entitiesTag.getList("uuids", NbtType.INT_ARRAY).stream()
+        entitiesTag.getList("uuids", NbtElement.INT_ARRAY_TYPE).stream()
                 .map(NbtHelper::toUuid)
                 .forEach(map.entitiesToInclude::add);
 
-        entitiesTag.getList("types", NbtType.STRING).stream()
-                .map(tag -> new Identifier(tag.asString()))
+        entitiesTag.getList("types", NbtElement.STRING_TYPE).stream()
+                .map(tag -> Identifier.tryParse(tag.asString()))
                 .map(Registries.ENTITY_TYPE::get)
                 .forEach(map.entityTypesToInclude::add);
 
@@ -308,7 +308,7 @@ public final class MapWorkspace {
 
             var entity = world.getBlockEntity(pos);
             if (entity != null) {
-                map.setBlockEntity(localPos, entity);
+                map.setBlockEntity(localPos, entity, world.getRegistryManager());
             }
         }
     }

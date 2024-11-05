@@ -23,7 +23,7 @@ public final class DimensionOptionsArgument {
                 .suggests((context, builder) -> {
                     var source = context.getSource();
                     var registryManager = source.getServer().getCombinedDynamicRegistries().getCombinedRegistryManager();;
-                    var dimensions = registryManager.get(RegistryKeys.DIMENSION);
+                    var dimensions = registryManager.getOrThrow(RegistryKeys.DIMENSION);
 
                     return CommandSource.suggestIdentifiers(
                             dimensions.getIds().stream(),
@@ -37,7 +37,7 @@ public final class DimensionOptionsArgument {
 
         var source = context.getSource();
         var registryManager = source.getServer().getCombinedDynamicRegistries().getCombinedRegistryManager();;
-        var dimensions = registryManager.get(RegistryKeys.DIMENSION);
+        var dimensions = registryManager.getOrThrow(RegistryKeys.DIMENSION);
 
         var dimension = dimensions.get(identifier);
         if (dimension == null) {

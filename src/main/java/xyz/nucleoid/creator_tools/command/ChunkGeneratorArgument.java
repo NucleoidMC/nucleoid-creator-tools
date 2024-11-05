@@ -4,7 +4,7 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.registry.Registries;
@@ -29,7 +29,7 @@ public final class ChunkGeneratorArgument {
                 });
     }
 
-    public static Codec<? extends ChunkGenerator> get(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
+    public static MapCodec<? extends ChunkGenerator> get(CommandContext<ServerCommandSource> context, String name) throws CommandSyntaxException {
         var identifier = IdentifierArgumentType.getIdentifier(context, name);
 
         var generator = Registries.CHUNK_GENERATOR.get(identifier);
