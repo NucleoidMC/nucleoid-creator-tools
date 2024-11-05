@@ -25,10 +25,13 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.dimension.DimensionTypes;
 import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.MapTemplateExporter;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
+import xyz.nucleoid.creator_tools.workspace.ReturnPosition;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -132,7 +135,7 @@ public final class MapManageCommand {
             var sourceName = context.getSource().getName()
                     .toLowerCase(Locale.ROOT)
                     .replaceAll("\\s", "_");
-            identifier = new Identifier(sourceName, givenIdentifier.getPath());
+            identifier = Identifier.of(sourceName, givenIdentifier.getPath());
         } else {
             identifier = givenIdentifier;
         }
@@ -165,9 +168,9 @@ public final class MapManageCommand {
 
     private static int openWorkspaceLikeDimension(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         var dimension = DimensionOptionsArgument.get(context, "dimension");
-        var reg = context.getSource().getServer().getRegistryManager().get(RegistryKeys.DIMENSION_TYPE);
+        var reg = context.getSource().getServer().getRegistryManager().getOrThrow(RegistryKeys.DIMENSION_TYPE);
         var worldConfig = new RuntimeWorldConfig()
-                .setDimensionType(reg.getEntry(reg.getKey(dimension.dimensionTypeEntry().value()).get()).get())
+                .setDimensionType(reg.getOrThrow(reg.getKey(dimension.dimensionTypeEntry().value()).get()))
                 .setGenerator(dimension.chunkGenerator());
 
         return MapManageCommand.openWorkspace(context, worldConfig);
@@ -183,7 +186,7 @@ public final class MapManageCommand {
                 server.getRegistryManager()
         );
 
-        var chunkGenerator = Util.getResult(generatorCodec.parse(ops, config), INVALID_GENERATOR_CONFIG::create);
+        var chunkGenerator = generatorCodec.codec().parse(ops, config).getOrThrow(INVALID_GENERATOR_CONFIG::create);
 
         var worldConfig = new RuntimeWorldConfig()
                 .setDimensionType(DimensionTypes.OVERWORLD)
@@ -241,7 +244,7 @@ public final class MapManageCommand {
         if (returnPosition != null) {
             returnPosition.applyTo(player);
         } else {
-            player.teleport(workspaceWorld, 0.0, 64.0, 0.0, 0.0F, 0.0F);
+            player.teleportTo(new TeleportTarget(workspaceWorld, new Vec3d(0.0, 64.0, 0.0), Vec3d.ZERO, 0.0F, 0.0F, TeleportTarget.NO_OP));
         }
 
         if (player.getAbilities().allowFlying) {
@@ -275,8 +278,7 @@ public final class MapManageCommand {
             returnPosition.applyTo(player);
         } else {
             var overworld = source.getServer().getOverworld();
-            var spawnPos = overworld.getSpawnPos();
-            player.teleport(overworld, spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), 0.0F, 0.0F);
+            ReturnPosition.ofSpawn(overworld).applyTo(player);
         }
 
         source.sendFeedback(
@@ -305,7 +307,8 @@ public final class MapManageCommand {
             );
         }
 
-        var future = MapTemplateExporter.saveToExport(template, workspace.getIdentifier());
+        var registries = source.getRegistryManager();
+        var future = MapTemplateExporter.saveToExport(template, workspace.getIdentifier(), registries);
 
         future.handle((v, throwable) -> {
             if (throwable == null) {
@@ -393,7 +396,7 @@ public final class MapManageCommand {
     private static CompletableFuture<MapTemplate> tryLoadTemplateForImport(MinecraftServer server, Identifier location) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return MapTemplateExporter.loadFromExport(location);
+                return MapTemplateExporter.loadFromExport(location, server.getRegistryManager());
             } catch (IOException ignored) {
                 try {
                     return MapTemplateSerializer.loadFromResource(server, location);

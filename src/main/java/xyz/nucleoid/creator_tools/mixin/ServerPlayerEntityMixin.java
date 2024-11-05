@@ -2,10 +2,9 @@ package xyz.nucleoid.creator_tools.mixin;
 
 import com.mojang.authlib.GameProfile;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
-import net.fabricmc.fabric.api.util.NbtType;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
@@ -13,6 +12,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -75,12 +75,16 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
 
         var workspaceReturnPositions = creatorTools.getCompound("workspace_return");
         for (var key : workspaceReturnPositions.getKeys()) {
-            var dimensionKey = RegistryKey.of(RegistryKeys.WORLD, new Identifier(key));
-            var position = ReturnPosition.read(workspaceReturnPositions.getCompound(key));
-            this.workspaceReturns.put(dimensionKey, position);
+            var id = Identifier.tryParse(key);
+
+            if (id != null) {
+                var dimensionKey = RegistryKey.of(RegistryKeys.WORLD, id);
+                var position = ReturnPosition.read(workspaceReturnPositions.getCompound(key));
+                this.workspaceReturns.put(dimensionKey, position);
+            }
         }
 
-        if (creatorTools.contains("leave_return", NbtType.COMPOUND)) {
+        if (creatorTools.contains("leave_return", NbtElement.COMPOUND_TYPE)) {
             this.leaveReturn = ReturnPosition.read(creatorTools.getCompound("leave_return"));
         }
     }
@@ -94,14 +98,9 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
         this.creatorToolsProtocolVersion = fromTraveler.creatorToolsProtocolVersion;
     }
 
-    @Inject(method = "teleport(Lnet/minecraft/server/world/ServerWorld;DDDFF)V", at = @At("HEAD"))
-    private void onTeleport(ServerWorld targetWorld, double x, double y, double z, float yaw, float pitch, CallbackInfo ci) {
-        this.onDimensionChange(targetWorld);
-    }
-
-    @Inject(method = "moveToWorld", at = @At("HEAD"))
-    private void onMoveToWorld(ServerWorld targetWorld, CallbackInfoReturnable<Entity> ci) {
-        this.onDimensionChange(targetWorld);
+    @Inject(method = "teleportTo", at = @At("HEAD"))
+    private void onTeleport(TeleportTarget target, CallbackInfoReturnable<ServerPlayerEntity> ci) {
+        this.onDimensionChange(target.world());
     }
 
     private void onDimensionChange(ServerWorld targetWorld) {

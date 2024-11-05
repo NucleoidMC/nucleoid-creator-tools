@@ -1,9 +1,21 @@
 package xyz.nucleoid.creator_tools.workspace;
 
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
+import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 public record WorkspaceRegion(int runtimeId, String marker, BlockBounds bounds, NbtCompound data) {
+    public static final PacketCodec<PacketByteBuf, WorkspaceRegion> CODEC = PacketCodec.tuple(
+            PacketCodecs.VAR_INT, WorkspaceRegion::runtimeId,
+            PacketCodecs.STRING, WorkspaceRegion::marker,
+            WorkspaceNetworking.BOUNDS_CODEC, WorkspaceRegion::bounds,
+            PacketCodecs.UNLIMITED_NBT_COMPOUND, WorkspaceRegion::data,
+            WorkspaceRegion::new
+    );
+
     public WorkspaceRegion withMarker(String marker) {
         return new WorkspaceRegion(this.runtimeId, marker, this.bounds, this.data);
     }
