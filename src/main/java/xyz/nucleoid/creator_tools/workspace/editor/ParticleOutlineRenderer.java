@@ -54,7 +54,7 @@ public final class ParticleOutlineRenderer {
         }
 
         world.spawnParticles(
-                player, effect, true,
+                player, effect, false, true,
                 x, y, z,
                 1,
                 0.0, 0.0, 0.0,

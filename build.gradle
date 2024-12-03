@@ -29,11 +29,11 @@ dependencies {
 
   modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-  modImplementation include('eu.pb4:polymer-core:0.10.2+1.21.3')
-  modImplementation include('eu.pb4:polymer-virtual-entity:0.10.2+1.21.3')
+  modImplementation include('eu.pb4:polymer-core:0.11.0+1.21.4-rc1')
+  modImplementation include('eu.pb4:polymer-virtual-entity:0.11.0+1.21.4-rc1')
   modImplementation include('xyz.nucleoid:server-translations-api:2.4.0+1.21.2-rc1')
   modImplementation include('xyz.nucleoid:fantasy:0.6.5+1.21.2')
-  modImplementation(include('me.lucko:fabric-permissions-api:0.3.2'))
+  modImplementation(include('me.lucko:fabric-permissions-api:0.3.3'))
 
   modImplementation include('xyz.nucleoid:map-templates:0.2.1+1.21.3')
 }
