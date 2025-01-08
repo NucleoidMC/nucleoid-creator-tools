@@ -28,6 +28,7 @@ import xyz.nucleoid.map_templates.BlockBounds;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -229,6 +230,11 @@ public final class MapWorkspaceManager extends PersistentState {
      * This fixes an issue on Windows where saving map workspaces would always fail.
      */
     public static void migratePath(MinecraftServer server) {
+        // Do not attempt migration on Windows, as even trying to resolve the broken path will crash
+        if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")) {
+            return;
+        }
+
         var manager = server.getOverworld().getPersistentStateManager();
 
         try {
