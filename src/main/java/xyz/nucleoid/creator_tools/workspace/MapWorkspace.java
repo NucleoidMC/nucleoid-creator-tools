@@ -6,13 +6,11 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
@@ -188,7 +186,7 @@ public final class MapWorkspace {
         root.putString("identifier", this.identifier.toString());
         this.bounds.serialize(root);
 
-        root.putIntArray("origin", new int[] { this.origin.getX(), this.origin.getY(), this.origin.getZ() });
+        root.put("origin", BlockPos.CODEC, this.origin);
 
         // Regions
         var regionList = new NbtList();
@@ -199,17 +197,10 @@ public final class MapWorkspace {
 
         // Entities
         var entitiesTag = new NbtCompound();
-        var entityList = new NbtList();
-        for (UUID uuid : this.entitiesToInclude) {
-            entityList.add(NbtHelper.fromUuid(uuid));
-        }
-        entitiesTag.put("uuids", entityList);
 
-        var entityTypeList = new NbtList();
-        for (var type : this.entityTypesToInclude) {
-            entityTypeList.add(NbtString.of(Registries.ENTITY_TYPE.getId(type).toString()));
-        }
-        entitiesTag.put("types", entityTypeList);
+        entitiesTag.put("uuids", Uuids.INT_STREAM_CODEC.listOf(), this.entitiesToInclude.stream().toList());
+        entitiesTag.put("types", Registries.ENTITY_TYPE.getCodec().listOf(), this.entityTypesToInclude.stream().toList());
+
         root.put("entities", entitiesTag);
 
         // Data
@@ -219,39 +210,34 @@ public final class MapWorkspace {
     }
 
     public static MapWorkspace deserialize(RuntimeWorldHandle worldHandle, NbtCompound root) {
-        var identifier = Identifier.of(root.getString("identifier"));
+        var identifier = Identifier.of(root.getString("identifier", ""));
         var bounds = BlockBounds.deserialize(root);
 
         var map = new MapWorkspace(worldHandle, identifier, bounds);
 
-        if (root.contains("origin", NbtElement.INT_ARRAY_TYPE)) {
-            var origin = root.getIntArray("origin");
-            map.setOrigin(new BlockPos(origin[0], origin[1], origin[2]));
-        } else {
-            map.setOrigin(bounds.min());
-        }
+        map.setOrigin(root.get("origin", BlockPos.CODEC).orElse(bounds.min()));
 
         // Regions
-        var regionList = root.getList("regions", NbtElement.COMPOUND_TYPE);
+        var regionList = root.getListOrEmpty("regions");
         for (int i = 0; i < regionList.size(); i++) {
-            var regionRoot = regionList.getCompound(i);
+            var regionRoot = regionList.getCompoundOrEmpty(i);
             int runtimeId = map.nextRegionId();
             map.regions.put(runtimeId, WorkspaceRegion.deserialize(runtimeId, regionRoot));
         }
 
         // Entities
-        var entitiesTag = root.getCompound("entities");
-        entitiesTag.getList("uuids", NbtElement.INT_ARRAY_TYPE).stream()
-                .map(NbtHelper::toUuid)
-                .forEach(map.entitiesToInclude::add);
+        var entitiesTag = root.getCompoundOrEmpty("entities");
 
-        entitiesTag.getList("types", NbtElement.STRING_TYPE).stream()
-                .map(tag -> Identifier.tryParse(tag.asString()))
-                .map(Registries.ENTITY_TYPE::get)
-                .forEach(map.entityTypesToInclude::add);
+        entitiesTag.get("entities", Uuids.INT_STREAM_CODEC.listOf()).ifPresent(uuids -> {
+            uuids.forEach(map.entitiesToInclude::add);
+        });
+
+        entitiesTag.get("types", Registries.ENTITY_TYPE.getCodec().listOf()).ifPresent(types -> {
+            types.forEach(map.entityTypesToInclude::add);
+        });
 
         // Data
-        map.data = root.getCompound("data");
+        map.data = root.getCompoundOrEmpty("data");
 
         return map;
     }

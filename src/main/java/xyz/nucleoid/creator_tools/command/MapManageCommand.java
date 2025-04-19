@@ -411,8 +411,8 @@ public final class MapManageCommand {
     protected static Text getClickablePosText(BlockPos pos) {
         var linkCommand = "/tp @s " + pos.getX() + " " + pos.getY() + " " + pos.getZ();
         var linkStyle = Style.EMPTY
-                .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, linkCommand))
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.translatable("chat.coordinates.tooltip")))
+                .withClickEvent(new ClickEvent.SuggestCommand(linkCommand))
+                .withHoverEvent(new HoverEvent.ShowText(Text.translatable("chat.coordinates.tooltip")))
                 .withFormatting(Formatting.GREEN);
 
         return Texts.bracketed(Text.translatable("chat.coordinates", pos.getX(), pos.getY(), pos.getZ())).setStyle(linkStyle);

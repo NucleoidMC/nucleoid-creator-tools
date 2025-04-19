@@ -6,13 +6,13 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.PersistentState;
+import net.minecraft.world.PersistentStateType;
 import net.minecraft.world.World;
 import net.minecraft.world.dimension.DimensionTypes;
 import org.jetbrains.annotations.Nullable;
@@ -52,16 +52,22 @@ public final class MapWorkspaceManager extends PersistentState {
     }
 
     public static MapWorkspaceManager get(MinecraftServer server) {
-        var type = new PersistentState.Type<>(
+        var codec = NbtCompound.CODEC.xmap(nbt -> {
+            return readNbt(server, nbt);
+        }, manager -> {
+            var nbt = new NbtCompound();
+            manager.writeNbt(nbt);
+            return nbt;
+        });
+
+        var type = new PersistentStateType<>(
+                KEY,
                 () -> new MapWorkspaceManager(server),
-                (nbt, registries) -> MapWorkspaceManager.readNbt(server, nbt, registries),
+                codec,
                 null
         );
 
-        return server.getOverworld().getPersistentStateManager().getOrCreate(
-                type,
-                KEY
-        );
+        return server.getOverworld().getPersistentStateManager().getOrCreate(type);
     }
 
     public void tick() {
@@ -146,14 +152,14 @@ public final class MapWorkspaceManager extends PersistentState {
         return this.workspacesById.values();
     }
 
-    private static MapWorkspaceManager readNbt(MinecraftServer server, NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+    private static MapWorkspaceManager readNbt(MinecraftServer server, NbtCompound nbt) {
         var manager = new MapWorkspaceManager(server);
 
         for (var key : nbt.getKeys()) {
             var identifier = Identifier.tryParse(key);
 
             if (identifier != null) {
-                var root = nbt.getCompound(key);
+                var root = nbt.getCompoundOrEmpty(key);
 
                 var worldHandle = manager.getOrCreateDimension(identifier, manager.createDefaultConfig());
                 worldHandle.setTickWhenEmpty(false);
@@ -168,8 +174,7 @@ public final class MapWorkspaceManager extends PersistentState {
         return manager;
     }
 
-    @Override
-    public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+    public NbtCompound writeNbt(NbtCompound nbt) {
         for (var entry : this.workspacesById.entrySet()) {
             String key = entry.getKey().toString();
             nbt.put(key, entry.getValue().serialize(new NbtCompound()));

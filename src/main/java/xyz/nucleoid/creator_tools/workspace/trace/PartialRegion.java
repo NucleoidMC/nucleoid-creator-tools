@@ -19,14 +19,14 @@ public class PartialRegion {
         if (this.target == null) {
             return this.origin;
         }
-        return BlockBounds.min(this.origin, this.target);
+        return BlockPos.min(this.origin, this.target);
     }
 
     public BlockPos getMax() {
         if (this.target == null) {
             return this.origin;
         }
-        return BlockBounds.max(this.origin, this.target);
+        return BlockPos.max(this.origin, this.target);
     }
 
     public BlockBounds asComplete() {

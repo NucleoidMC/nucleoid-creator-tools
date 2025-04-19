@@ -36,8 +36,8 @@ public record WorkspaceRegion(int runtimeId, String marker, BlockBounds bounds, 
     }
 
     public static WorkspaceRegion deserialize(int runtimeId, NbtCompound tag) {
-        var marker = tag.getString("marker");
-        var data = tag.getCompound("data");
+        var marker = tag.getString("marker", "");
+        var data = tag.getCompoundOrEmpty("data");
         return new WorkspaceRegion(runtimeId, marker, BlockBounds.deserialize(tag), data);
     }
 }

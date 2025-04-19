@@ -4,13 +4,10 @@ import com.mojang.authlib.GameProfile;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
@@ -49,44 +46,23 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
     private void writeData(NbtCompound root, CallbackInfo ci) {
         var creatorTools = new NbtCompound();
 
-        var workspaceReturns = new NbtCompound();
-
-        for (var entry : this.workspaceReturns.entrySet()) {
-            var key = entry.getKey().getValue();
-            var position = entry.getValue();
-            workspaceReturns.put(key.toString(), position.write(new NbtCompound()));
-        }
-
-        creatorTools.put("workspace_return", workspaceReturns);
-
-        if (this.leaveReturn != null) {
-            creatorTools.put("leave_return", this.leaveReturn.write(new NbtCompound()));
-        }
+        creatorTools.put("workspace_return", ReturnPosition.MAP_CODEC, this.workspaceReturns);
+        creatorTools.putNullable("leave_return", ReturnPosition.CODEC, this.leaveReturn);
 
         root.put(CreatorTools.ID, creatorTools);
     }
 
     @Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
     private void readData(NbtCompound root, CallbackInfo ci) {
-        var creatorTools = root.getCompound(CreatorTools.ID);
+        var creatorTools = root.getCompoundOrEmpty(CreatorTools.ID);
 
         this.workspaceReturns.clear();
-        this.leaveReturn = null;
 
-        var workspaceReturnPositions = creatorTools.getCompound("workspace_return");
-        for (var key : workspaceReturnPositions.getKeys()) {
-            var id = Identifier.tryParse(key);
+        creatorTools.get("workspace_return", ReturnPosition.MAP_CODEC).ifPresent(returns -> {
+            this.workspaceReturns.putAll(returns);
+        });
 
-            if (id != null) {
-                var dimensionKey = RegistryKey.of(RegistryKeys.WORLD, id);
-                var position = ReturnPosition.read(workspaceReturnPositions.getCompound(key));
-                this.workspaceReturns.put(dimensionKey, position);
-            }
-        }
-
-        if (creatorTools.contains("leave_return", NbtElement.COMPOUND_TYPE)) {
-            this.leaveReturn = ReturnPosition.read(creatorTools.getCompound("leave_return"));
-        }
+        this.leaveReturn = creatorTools.get("leave_return", ReturnPosition.CODEC).orElse(null);
     }
 
     @Inject(method = "copyFrom", at = @At("RETURN"))

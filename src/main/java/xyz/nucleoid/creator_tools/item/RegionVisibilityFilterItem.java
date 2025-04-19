@@ -1,6 +1,7 @@
 package xyz.nucleoid.creator_tools.item;
 
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.jetbrains.annotations.Nullable;
@@ -8,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.DyedColorComponent;
+import net.minecraft.component.type.TooltipDisplayComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -70,19 +72,21 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
 
         if (regions != null && !regions.isEmpty()) {
             var region = regions.get(0);
-            displayStack.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(ServersideWorkspaceEditor.colorForRegionBorder(region), false));
+
+            displayStack.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(ServersideWorkspaceEditor.colorForRegionBorder(region)));
+            displayStack.apply(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT, display -> display.with(DataComponentTypes.DYED_COLOR, true));
         }
 
         return displayStack;
     }
 
     @Override
-    public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+    public void appendTooltip(ItemStack stack, TooltipContext context, TooltipDisplayComponent displayComponent, Consumer<Text> textConsumer, TooltipType type) {
         var regions = getRegions(stack);
 
         if (regions != null) {
             for (var region : regions) {
-                tooltip.add(Text.literal(region).formatted(Formatting.GRAY));
+                textConsumer.accept(Text.literal(region).formatted(Formatting.GRAY));
             }
         }
     }
