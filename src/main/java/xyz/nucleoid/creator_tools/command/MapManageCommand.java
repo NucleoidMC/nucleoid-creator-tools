@@ -14,6 +14,7 @@ import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
 import net.minecraft.command.argument.RegistryEntryPredicateArgumentType;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryOps;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -105,6 +106,7 @@ public final class MapManageCommand {
                 ))
                 .then(literal("biome")
                     .then(MapWorkspaceArgument.argument("workspace")
+                            .executes(MapManageCommand::getBiome)
                     .then(argument("biome", RegistryEntryPredicateArgumentType.registryEntryPredicate(registryAccess, RegistryKeys.BIOME))
                     .executes(MapManageCommand::setBiome))))
                 .then(literal("join")
@@ -263,6 +265,17 @@ public final class MapManageCommand {
             source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.biome.set"), false);
         });
 
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static  int getBiome(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        ServerCommandSource source = context.getSource();
+
+        MapWorkspace workspace = MapWorkspaceArgument.get(context, "workspace");
+
+        RegistryKey<Biome> biome = workspace.getBiome();
+
+        source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.biome.get", Text.translatable("biome." + biome.getValue().toTranslationKey())), false);
         return Command.SINGLE_SUCCESS;
     }
 

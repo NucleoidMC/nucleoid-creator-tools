@@ -48,6 +48,7 @@
   "text.nucleoid_creator_tools.map.open.success": "Opened workspace '%s'! Use %s to join this map",
   "text.nucleoid_creator_tools.map.origin.set": "Updated origin for workspace",
   "text.nucleoid_creator_tools.map.biome.set": "Set biome for workspace",
+  "text.nucleoid_creator_tools.map.biome.get": "The current biome is %s",
   "text.nucleoid_creator_tools.map.biome.error": "Biome tags are not supported",
   "text.nucleoid_creator_tools.map.region.reserved_name": "Region name '%s' is not allowed to begin with '+'.",
   "text.nucleoid_creator_tools.map.region.selector.invalid": "Invalid region selector '%s'.",
