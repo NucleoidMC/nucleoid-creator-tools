@@ -8,11 +8,15 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.source.BiomeSource;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
@@ -35,6 +39,7 @@ public final class MapWorkspace {
 
     private BlockPos origin = BlockPos.ORIGIN;
     private BlockBounds bounds;
+    private RegistryKey<Biome> biome;
 
     /* Regions */
     private final Int2ObjectMap<WorkspaceRegion> regions = new Int2ObjectOpenHashMap<>();
@@ -124,12 +129,20 @@ public final class MapWorkspace {
         }
     }
 
+    public void setBiome(RegistryKey<Biome> biome) {
+        this.biome = biome;
+    }
+
     public BlockBounds getBounds() {
         return this.bounds;
     }
 
     public BlockPos getOrigin() {
         return this.origin;
+    }
+
+    public RegistryKey<Biome> getBiome() {
+        return this.biome;
     }
 
     public Collection<WorkspaceRegion> getRegions() {
@@ -188,6 +201,7 @@ public final class MapWorkspace {
 
         root.put("origin", BlockPos.CODEC, this.origin);
 
+        root.put("biome", RegistryKey.createCodec(RegistryKeys.BIOME), this.biome);
         // Regions
         var regionList = new NbtList();
         for (var region : this.regions.values()) {
@@ -216,6 +230,7 @@ public final class MapWorkspace {
         var map = new MapWorkspace(worldHandle, identifier, bounds);
 
         map.setOrigin(root.get("origin", BlockPos.CODEC).orElse(bounds.min()));
+        root.get("biome", RegistryKey.createCodec(RegistryKeys.BIOME)).ifPresent(map::setBiome);
 
         // Regions
         var regionList = root.getListOrEmpty("regions");
@@ -254,6 +269,7 @@ public final class MapWorkspace {
     public MapTemplate compile(boolean includeEntities) {
         var map = MapTemplate.createEmpty();
         map.setBounds(this.globalToLocal(this.bounds));
+        map.setBiome(this.biome);
 
         this.writeMetadataToTemplate(map);
 

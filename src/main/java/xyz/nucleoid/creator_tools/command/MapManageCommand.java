@@ -6,13 +6,18 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import com.mojang.datafixers.util.Either;
 import me.lucko.fabric.api.permissions.v0.Permissions;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.IdentifierArgumentType;
 import net.minecraft.command.argument.NbtCompoundArgumentType;
+import net.minecraft.command.argument.RegistryEntryPredicateArgumentType;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryOps;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.ClickEvent;
@@ -27,9 +32,11 @@ import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.dimension.DimensionTypes;
 import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.MapTemplateExporter;
+import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.ReturnPosition;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
@@ -43,8 +50,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.server.command.CommandManager.*;
 
 public final class MapManageCommand {
     public static final SimpleCommandExceptionType MAP_NOT_HERE = new SimpleCommandExceptionType(
@@ -63,8 +69,12 @@ public final class MapManageCommand {
             Text.stringifiedTranslatable("text.nucleoid_creator_tools.map.open.invalid_generator_config", arg)
     );
 
+    public static final SimpleCommandExceptionType BIOME_TAG_NOT_SUPPORTED = new SimpleCommandExceptionType(
+            Text.translatable("text.nucleoid_creator_tools.map.biome.error")
+    );
+
     // @formatter:off
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
         dispatcher.register(
             literal("map").requires(Permissions.require("nucleoid_creator_extras.map", 2))
                 .then(literal("open")
@@ -93,6 +103,10 @@ public final class MapManageCommand {
                             .executes(MapManageCommand::setWorkspaceBounds)
                         ))
                 ))
+                .then(literal("biome")
+                    .then(MapWorkspaceArgument.argument("workspace")
+                    .then(argument("biome", RegistryEntryPredicateArgumentType.registryEntryPredicate(registryAccess, RegistryKeys.BIOME))
+                    .executes(MapManageCommand::setBiome))))
                 .then(literal("join")
                     .then(MapWorkspaceArgument.argument("workspace")
                     .executes(MapManageCommand::joinWorkspace)
@@ -228,6 +242,26 @@ public final class MapManageCommand {
         workspace.setBounds(BlockBounds.of(min, max));
 
         source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.bounds.set"), false);
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setBiome(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        ServerCommandSource source = context.getSource();
+
+        MapWorkspace workspace = MapWorkspaceArgument.get(context, "workspace");
+        RegistryEntryPredicateArgumentType.EntryPredicate<Biome> predicate = RegistryEntryPredicateArgumentType.getRegistryEntryPredicate(context, "biome", RegistryKeys.BIOME);
+        System.out.println(predicate.getEntry());
+        Either<RegistryEntry.Reference<Biome>, RegistryEntryList.Named<Biome>> entry = predicate.getEntry();
+
+        if (entry.right().isPresent()) {
+            throw BIOME_TAG_NOT_SUPPORTED.create();
+        }
+
+        entry.ifLeft((biome) -> {
+            workspace.setBiome(biome.registryKey());
+            source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.biome.set"), false);
+        });
 
         return Command.SINGLE_SUCCESS;
     }
