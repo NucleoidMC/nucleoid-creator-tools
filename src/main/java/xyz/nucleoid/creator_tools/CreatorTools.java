@@ -25,7 +25,7 @@ public final class CreatorTools implements ModInitializer {
         CreatorToolsDataComponentTypes.register();
 
         CommandRegistrationCallback.EVENT.register((dispatcher, dedicated, environment) -> {
-            MapManageCommand.register(dispatcher);
+            MapManageCommand.register(dispatcher, dedicated);
             MapMetadataCommand.register(dispatcher);
         });
 
