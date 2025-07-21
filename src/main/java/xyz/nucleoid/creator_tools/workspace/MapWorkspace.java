@@ -10,22 +10,21 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Uuids;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.source.BiomeSource;
+import net.minecraft.world.biome.BiomeKeys;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A map workspace represents an in-world map template within a dimension before it has been compiled to a static file.
@@ -40,6 +39,7 @@ public final class MapWorkspace {
     private BlockPos origin = BlockPos.ORIGIN;
     private BlockBounds bounds;
     private RegistryKey<Biome> biome;
+    private boolean isBiomeHardcoded = false;
 
     /* Regions */
     private final Int2ObjectMap<WorkspaceRegion> regions = new Int2ObjectOpenHashMap<>();
@@ -131,6 +131,12 @@ public final class MapWorkspace {
 
     public void setBiome(RegistryKey<Biome> biome) {
         this.biome = biome;
+        this.isBiomeHardcoded = true;
+    }
+
+    public void clearHardcodedBiome() {
+        this.biome = BiomeKeys.THE_VOID;
+        this.isBiomeHardcoded = false;
     }
 
     public BlockBounds getBounds() {
@@ -269,11 +275,35 @@ public final class MapWorkspace {
     public MapTemplate compile(boolean includeEntities) {
         var map = MapTemplate.createEmpty();
         map.setBounds(this.globalToLocal(this.bounds));
-        map.setBiome(this.biome);
+
+        var world = this.worldHandle.asWorld();
+
+        if (isBiomeHardcoded) {
+            map.setBiome(this.biome);
+        } else {
+            AtomicReference<RegistryEntry<Biome>> dominantBiome = new AtomicReference<>();
+            AtomicInteger largestCount = new AtomicInteger();
+            HashMap<RegistryEntry<Biome>, Integer> biomeOccurences = new HashMap<>();
+            for (BlockPos pos : this.bounds) {
+                RegistryEntry<Biome> biome = world.getBiome(pos);
+                if (biomeOccurences.containsKey(biome)) {
+                    biomeOccurences.replace(biome, biomeOccurences.get(biome) + 1);
+                } else {
+                    biomeOccurences.put(biome, 1);
+                }
+            }
+
+            biomeOccurences.forEach((biome, val) -> {
+                if (val > largestCount.get()) {
+                    dominantBiome.set(biome);
+                    largestCount.set(val);
+                }
+            });
+            map.setBiome(dominantBiome.get().getKey().orElseThrow());
+        }
 
         this.writeMetadataToTemplate(map);
 
-        var world = this.worldHandle.asWorld();
 
         this.writeBlocksToTemplate(map, world);
 

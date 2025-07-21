@@ -106,9 +106,12 @@ public final class MapManageCommand {
                 ))
                 .then(literal("biome")
                     .then(MapWorkspaceArgument.argument("workspace")
-                            .executes(MapManageCommand::getBiome)
-                    .then(argument("biome", RegistryEntryPredicateArgumentType.registryEntryPredicate(registryAccess, RegistryKeys.BIOME))
-                    .executes(MapManageCommand::setBiome))))
+                        .executes(MapManageCommand::getBiome)
+                        .then(argument("biome", RegistryEntryPredicateArgumentType.registryEntryPredicate(registryAccess, RegistryKeys.BIOME))
+                            .executes(MapManageCommand::setBiome))
+                        .then(literal("clear")
+                            .executes(MapManageCommand::clearBiome))
+                    ))
                 .then(literal("join")
                     .then(MapWorkspaceArgument.argument("workspace")
                     .executes(MapManageCommand::joinWorkspace)
@@ -248,6 +251,16 @@ public final class MapManageCommand {
         return Command.SINGLE_SUCCESS;
     }
 
+    private static int clearBiome(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+        ServerCommandSource source = context.getSource();
+
+        MapWorkspace workspace = MapWorkspaceArgument.get(context, "workspace");
+
+        workspace.clearHardcodedBiome();
+        source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.biome.clear"), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
     private static int setBiome(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
         ServerCommandSource source = context.getSource();
 
@@ -255,7 +268,6 @@ public final class MapManageCommand {
         RegistryEntryPredicateArgumentType.EntryPredicate<Biome> predicate = RegistryEntryPredicateArgumentType.getRegistryEntryPredicate(context, "biome", RegistryKeys.BIOME);
         System.out.println(predicate.getEntry());
         Either<RegistryEntry.Reference<Biome>, RegistryEntryList.Named<Biome>> entry = predicate.getEntry();
-
         if (entry.right().isPresent()) {
             throw BIOME_TAG_NOT_SUPPORTED.create();
         }
