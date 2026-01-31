@@ -2,6 +2,8 @@
 This mod implements various tools for generating game content for the Nucleoid ecosystem.
 The main current functionality with this mod is the handling of game map creation.
 
+This is a soft fork of [NucleoidMC/nucleoid-creator-tools](https://github.com/NucleoidMC/nucleoid-creator-tools/), mostly because I needed it on Maven.
+
 ## Creating a Map
 Any minigame needs a map for the game to take place within. While sometimes a minigame may want to generate the map procedurally, in many cases, hand-built maps are desirable.
 

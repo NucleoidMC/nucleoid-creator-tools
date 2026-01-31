@@ -2,7 +2,7 @@ plugins {
   id 'fabric-loom' version '1.13.+'
   id 'maven-publish'
   id "com.modrinth.minotaur" version "2.+"
-
+  id 'org.jreleaser' version '1.22.0'
 }
 
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_21
@@ -56,6 +56,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 java {
+  withJavadocJar()
   withSourcesJar()
 }
 
@@ -78,5 +79,70 @@ if (System.getenv("MODRINTH")) {
 
   remapJar {
     finalizedBy project.tasks.modrinth
+  }
+}
+
+jreleaser {
+  signing {
+    pgp {
+      active = 'ALWAYS'
+      armored = true
+      mode = 'COMMAND'
+    }
+  }
+  deploy {
+    maven {
+      mavenCentral {
+        sontatype {
+          active = 'RELEASE'
+          url = 'https://central.sonatype.com/api/v1/publisher'
+          stagingRepository('build/staging-deploy')
+        }
+      }
+    }
+  }
+}
+
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId = group
+      artifactId = archivesBaseName
+
+      from components.java
+
+      pom {
+        name = archivesBaseName
+        description = 'Tools for creators to make minigame content for the Nucleoid ecosystem'
+        url = 'https://github.com/skycatminepokie/nucleoid-creator-tools'
+        inceptionYear = '2026'
+        licenses {
+          license {
+            name = 'LGPLv3'
+            url = 'https://spdx.org/licenses/LGPL-3.0-only.html'
+          }
+        }
+        developers {
+          developer {
+            id = 'skycatminepokie'
+          }
+          developer {
+            id = 'Nucleoid Contributors'
+            name = 'Nucleoid Contributors'
+          }
+        }
+        scm {
+          connection = 'scm:git:https://github.com/skycatminepokie/nucleoid-creator-tools.git'
+          developerConnection = 'scm:git:ssh://github.com/skycatminepokie/nucleoid-creator-tools.git'
+          url = 'http://github.com/skycatminepokie/nucleoid-creator-tools'
+        }
+      }
+    }
+  }
+
+  repositories {
+    maven {
+      url = 'build/staging-deploy'
+    }
   }
 }
