@@ -3,25 +3,21 @@ package xyz.nucleoid.creator_tools.workspace;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.Registries;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Uuids;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.fantasy.RuntimeWorldHandle;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * A map workspace represents an in-world map template within a dimension before it has been compiled to a static file.
@@ -33,7 +29,7 @@ public final class MapWorkspace {
 
     private final Identifier identifier;
 
-    private BlockPos origin = BlockPos.ORIGIN;
+    private BlockPos origin = BlockPos.ZERO;
     private BlockBounds bounds;
 
     /* Regions */
@@ -44,7 +40,7 @@ public final class MapWorkspace {
     private final Set<EntityType<?>> entityTypesToInclude = new ObjectOpenHashSet<>();
 
     /* Data */
-    private NbtCompound data = new NbtCompound();
+    private CompoundTag data = new CompoundTag();
 
     private int nextRegionId;
 
@@ -68,7 +64,7 @@ public final class MapWorkspace {
         return this.nextRegionId++;
     }
 
-    public void addRegion(String marker, BlockBounds bounds, NbtCompound tag) {
+    public void addRegion(String marker, BlockBounds bounds, CompoundTag tag) {
         int runtimeId = this.nextRegionId();
         var region = new WorkspaceRegion(runtimeId, marker, bounds, tag);
         this.regions.put(runtimeId, region);
@@ -165,7 +161,7 @@ public final class MapWorkspace {
      *
      * @return the data as a compound tag
      */
-    public NbtCompound getData() {
+    public CompoundTag getData() {
         return this.data;
     }
 
@@ -174,7 +170,7 @@ public final class MapWorkspace {
      *
      * @param data the data as a compound tag
      */
-    public void setData(NbtCompound data) {
+    public void setData(CompoundTag data) {
         this.data = data;
 
         for (var listener : this.listeners) {
@@ -182,24 +178,24 @@ public final class MapWorkspace {
         }
     }
 
-    public NbtCompound serialize(NbtCompound root) {
+    public CompoundTag serialize(CompoundTag root) {
         root.putString("identifier", this.identifier.toString());
         this.bounds.serialize(root);
 
-        root.put("origin", BlockPos.CODEC, this.origin);
+        root.store("origin", BlockPos.CODEC, this.origin);
 
         // Regions
-        var regionList = new NbtList();
+        var regionList = new ListTag();
         for (var region : this.regions.values()) {
-            regionList.add(region.serialize(new NbtCompound()));
+            regionList.add(region.serialize(new CompoundTag()));
         }
         root.put("regions", regionList);
 
         // Entities
-        var entitiesTag = new NbtCompound();
+        var entitiesTag = new CompoundTag();
 
-        entitiesTag.put("uuids", Uuids.INT_STREAM_CODEC.listOf(), this.entitiesToInclude.stream().toList());
-        entitiesTag.put("types", Registries.ENTITY_TYPE.getCodec().listOf(), this.entityTypesToInclude.stream().toList());
+        entitiesTag.store("uuids", UUIDUtil.CODEC.listOf(), this.entitiesToInclude.stream().toList());
+        entitiesTag.store("types", BuiltInRegistries.ENTITY_TYPE.byNameCodec().listOf(), this.entityTypesToInclude.stream().toList());
 
         root.put("entities", entitiesTag);
 
@@ -209,13 +205,13 @@ public final class MapWorkspace {
         return root;
     }
 
-    public static MapWorkspace deserialize(RuntimeWorldHandle worldHandle, NbtCompound root) {
-        var identifier = Identifier.of(root.getString("identifier", ""));
+    public static MapWorkspace deserialize(RuntimeWorldHandle worldHandle, CompoundTag root) {
+        var identifier = Identifier.parse(root.getStringOr("identifier", ""));
         var bounds = BlockBounds.deserialize(root);
 
         var map = new MapWorkspace(worldHandle, identifier, bounds);
 
-        map.setOrigin(root.get("origin", BlockPos.CODEC).orElse(bounds.min()));
+        map.setOrigin(root.read("origin", BlockPos.CODEC).orElse(bounds.min()));
 
         // Regions
         var regionList = root.getListOrEmpty("regions");
@@ -228,13 +224,9 @@ public final class MapWorkspace {
         // Entities
         var entitiesTag = root.getCompoundOrEmpty("entities");
 
-        entitiesTag.get("entities", Uuids.INT_STREAM_CODEC.listOf()).ifPresent(uuids -> {
-            uuids.forEach(map.entitiesToInclude::add);
-        });
+        entitiesTag.read("entities", UUIDUtil.CODEC.listOf()).ifPresent(map.entitiesToInclude::addAll);
 
-        entitiesTag.get("types", Registries.ENTITY_TYPE.getCodec().listOf()).ifPresent(types -> {
-            types.forEach(map.entityTypesToInclude::add);
-        });
+        entitiesTag.read("types", BuiltInRegistries.ENTITY_TYPE.byNameCodec().listOf()).ifPresent(map.entityTypesToInclude::addAll);
 
         // Data
         map.data = root.getCompoundOrEmpty("data");
@@ -257,12 +249,12 @@ public final class MapWorkspace {
 
         this.writeMetadataToTemplate(map);
 
-        var world = this.worldHandle.asWorld();
+        var level = this.worldHandle.asWorld();
 
-        this.writeBlocksToTemplate(map, world);
+        this.writeBlocksToTemplate(map, level);
 
         if (includeEntities) {
-            this.writeEntitiesToTemplate(map, world);
+            this.writeEntitiesToTemplate(map, level);
         }
 
         return map;
@@ -281,34 +273,34 @@ public final class MapWorkspace {
         }
     }
 
-    private void writeBlocksToTemplate(MapTemplate map, ServerWorld world) {
+    private void writeBlocksToTemplate(MapTemplate map, ServerLevel level) {
         for (var pos : this.bounds) {
             var localPos = this.globalToLocal(pos);
 
-            var state = world.getBlockState(pos);
+            var state = level.getBlockState(pos);
             if (state.isAir()) {
                 continue;
             }
 
             map.setBlockState(localPos, state);
 
-            var entity = world.getBlockEntity(pos);
+            var entity = level.getBlockEntity(pos);
             if (entity != null) {
-                map.setBlockEntity(localPos, entity, world.getRegistryManager());
+                map.setBlockEntity(localPos, entity, level.registryAccess());
             }
         }
     }
 
-    private void writeEntitiesToTemplate(MapTemplate map, ServerWorld world) {
-        var entities = world.getEntitiesByClass(Entity.class, this.bounds.asBox(), entity -> {
+    private void writeEntitiesToTemplate(MapTemplate map, ServerLevel level) {
+        var entities = level.getEntitiesOfClass(Entity.class, this.bounds.asBox(), entity -> {
             if (entity.isRemoved()) {
                 return false;
             }
-            return this.containsEntity(entity.getUuid()) || this.hasEntityType(entity.getType());
+            return this.containsEntity(entity.getUUID()) || this.hasEntityType(entity.getType());
         });
 
         for (var entity : entities) {
-            map.addEntity(entity, this.globalToLocal(entity.getEntityPos()));
+            map.addEntity(entity, this.globalToLocal(entity.position()));
         }
     }
 
@@ -316,7 +308,7 @@ public final class MapWorkspace {
         return pos.subtract(this.origin);
     }
 
-    private Vec3d globalToLocal(Vec3d pos) {
+    private Vec3 globalToLocal(Vec3 pos) {
         var origin = this.origin;
         return pos.subtract(origin.getX(), origin.getY(), origin.getZ());
     }
@@ -325,7 +317,7 @@ public final class MapWorkspace {
         return BlockBounds.of(this.globalToLocal(bounds.min()), this.globalToLocal(bounds.max()));
     }
 
-    public ServerWorld getWorld() {
+    public ServerLevel getLevel() {
         return this.worldHandle.asWorld();
     }
 

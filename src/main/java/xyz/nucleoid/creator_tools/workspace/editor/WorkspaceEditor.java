@@ -1,11 +1,12 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.BlockPos;
-import java.util.function.Predicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import org.jetbrains.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
 import xyz.nucleoid.map_templates.BlockBounds;
+
+import java.util.function.Predicate;
 
 public interface WorkspaceEditor {
     default void addRegion(WorkspaceRegion region) {
@@ -23,7 +24,7 @@ public interface WorkspaceEditor {
     default void setOrigin(BlockPos origin) {
     }
 
-    default void setData(NbtCompound data) {
+    default void setData(CompoundTag data) {
     }
 
     default boolean useRegionItem() {

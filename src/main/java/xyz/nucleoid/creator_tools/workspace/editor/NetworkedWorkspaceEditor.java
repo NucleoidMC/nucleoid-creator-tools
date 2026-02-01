@@ -1,30 +1,26 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
-import java.util.stream.Collectors;
-
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerPlayer;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
-import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceBoundsPayload;
-import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceDataPayload;
-import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceLeavePayload;
-import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceRegionPayload;
-import xyz.nucleoid.creator_tools.workspace.editor.payload.WorkspaceRegionRemovePayload;
+import xyz.nucleoid.creator_tools.workspace.editor.payload.*;
 import xyz.nucleoid.creator_tools.workspace.editor.payload.s2c.WorkspaceEnterS2CPayload;
 import xyz.nucleoid.creator_tools.workspace.editor.payload.s2c.WorkspaceRegionsS2CPayload;
 import xyz.nucleoid.map_templates.BlockBounds;
+
+import java.util.stream.Collectors;
 
 /**
  * An editor implementation that uses {@linkplain WorkspaceNetworking networking} for use with clientside mods.
  */
 public class NetworkedWorkspaceEditor implements WorkspaceEditor {
-    private final ServerPlayerEntity player;
+    private final ServerPlayer player;
     private final MapWorkspace workspace;
 
-    public NetworkedWorkspaceEditor(ServerPlayerEntity player, MapWorkspace workspace) {
+    public NetworkedWorkspaceEditor(ServerPlayer player, MapWorkspace workspace) {
         this.player = player;
         this.workspace = workspace;
     }
@@ -35,7 +31,7 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
             this.sendPacket(new WorkspaceEnterS2CPayload(
                     this.workspace.getIdentifier(),
                     this.workspace.getBounds(),
-                    this.workspace.getWorld().getRegistryKey().getValue(),
+                    this.workspace.getLevel().dimension().identifier(),
                     this.workspace.getData()));
         }
 
@@ -82,17 +78,17 @@ public class NetworkedWorkspaceEditor implements WorkspaceEditor {
     }
 
     @Override
-    public void setData(NbtCompound data) {
+    public void setData(CompoundTag data) {
         if (this.canSendPacket(WorkspaceDataPayload.ID)) {
             this.sendPacket(new WorkspaceDataPayload(this.workspace.getIdentifier(), data));
         }
     }
 
-    private boolean canSendPacket(CustomPayload.Id<?> channel) {
+    private boolean canSendPacket(CustomPacketPayload.Type<?> channel) {
         return ServerPlayNetworking.canSend(this.player, channel);
     }
 
-    private void sendPacket(CustomPayload payload) {
+    private void sendPacket(CustomPacketPayload payload) {
         ServerPlayNetworking.send(this.player, payload);
     }
 

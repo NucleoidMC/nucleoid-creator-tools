@@ -1,16 +1,16 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
 import org.joml.Vector3i;
-import net.minecraft.particle.DustParticleEffect;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ColorHelper;
-import net.minecraft.util.math.MathHelper;
 
 public final class ParticleOutlineRenderer {
-    public static void render(ServerPlayerEntity player, BlockPos min, BlockPos max, float red, float green, float blue) {
-        var effect = new DustParticleEffect(ColorHelper.fromFloats(1, red, green, blue), 2.0F);
+    public static void render(ServerPlayer player, BlockPos min, BlockPos max, float red, float green, float blue) {
+        var effect = new DustParticleOptions(ARGB.colorFromFloat(1, red, green, blue), 2.0F);
 
         var edges = edges(min, max);
 
@@ -38,22 +38,22 @@ public final class ParticleOutlineRenderer {
         }
     }
 
-    private static void spawnParticleIfVisible(ServerPlayerEntity player, ParticleEffect effect, double x, double y, double z) {
-        var world = player.getEntityWorld();
+    private static void spawnParticleIfVisible(ServerPlayer player, ParticleOptions effect, double x, double y, double z) {
+        var world = player.level();
 
-        var delta = player.getEntityPos().subtract(x, y, z);
-        double length2 = delta.lengthSquared();
+        var delta = player.position().subtract(x, y, z);
+        double length2 = delta.lengthSqr();
         if (length2 > 256 * 256) {
             return;
         }
 
-        var rotation = player.getRotationVec(1.0F);
-        double dot = (delta.multiply(1.0 / Math.sqrt(length2))).dotProduct(rotation);
+        var rotation = player.getViewVector(1.0F);
+        double dot = (delta.scale(1.0 / Math.sqrt(length2))).dot(rotation);
         if (dot > 0.0) {
             return;
         }
 
-        world.spawnParticles(
+        world.sendParticles(
                 player, effect, false, true,
                 x, y, z,
                 1,
@@ -128,7 +128,7 @@ public final class ParticleOutlineRenderer {
             int dx = this.endX - this.startX;
             int dy = this.endY - this.startY;
             int dz = this.endZ - this.startZ;
-            return MathHelper.ceil(Math.sqrt(dx * dx + dy * dy + dz * dz));
+            return Mth.ceil(Math.sqrt(dx * dx + dy * dy + dz * dz));
         }
     }
 }

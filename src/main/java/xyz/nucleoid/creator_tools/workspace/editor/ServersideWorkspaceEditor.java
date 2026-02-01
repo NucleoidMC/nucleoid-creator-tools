@@ -1,25 +1,25 @@
 package xyz.nucleoid.creator_tools.workspace.editor;
 
+import com.google.common.base.Predicates;
 import eu.pb4.polymer.virtualentity.api.ElementHolder;
 import eu.pb4.polymer.virtualentity.api.attachment.HolderAttachment;
 import eu.pb4.polymer.virtualentity.api.elements.TextDisplayElement;
 import it.unimi.dsi.fastutil.HashCommon;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.nbt.visitor.NbtTextFormatter;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.nbt.TextComponentTagVisitor;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Display;
 import org.jetbrains.annotations.Nullable;
-import com.google.common.base.Predicates;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspace;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.PartialRegion;
 import xyz.nucleoid.creator_tools.workspace.trace.RegionTraceMode;
 import xyz.nucleoid.map_templates.BlockBounds;
-import net.minecraft.screen.ScreenTexts;
 
 import java.util.function.Predicate;
 
@@ -28,7 +28,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
     public static final Predicate<String> NO_FILTER = Predicates.alwaysTrue();
 
-    private final ServerPlayerEntity player;
+    private final ServerPlayer player;
     private final MapWorkspace workspace;
 
     private RegionTraceMode traceMode = RegionTraceMode.EXACT;
@@ -39,19 +39,19 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
     private final Int2ObjectMap<Marker> regionToMarker = new Int2ObjectOpenHashMap<>();
 
-    public ServersideWorkspaceEditor(ServerPlayerEntity player, MapWorkspace workspace) {
+    public ServersideWorkspaceEditor(ServerPlayer player, MapWorkspace workspace) {
         this.player = player;
         this.workspace = workspace;
     }
 
     @Override
     public void tick() {
-        if (this.player.age % PARTICLE_INTERVAL == 0) {
+        if (this.player.tickCount % PARTICLE_INTERVAL == 0) {
             this.renderWorkspaceBounds();
             this.renderTracingBounds();
         }
 
-        if (this.tracing != null && this.player.age % 5 == 0) {
+        if (this.tracing != null && this.player.tickCount % 5 == 0) {
             var pos = this.traceMode.tryTrace(this.player);
             if (pos != null) {
                 this.tracing.setTarget(pos);
@@ -61,7 +61,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
 
     @Override
     public boolean useRegionItem() {
-        if (!this.player.isSneaking()) {
+        if (!this.player.isShiftKeyDown()) {
             this.updateTrace();
         } else {
             this.changeTraceMode();
@@ -89,8 +89,8 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
             }
         }
 
-        Text message = Text.translatable("item.nucleoid_creator_tools.region_visibility_filter." + (this.filter == NO_FILTER ? "no_filter" : "set_filter"));
-        this.player.sendMessage(message, true);
+        Component message = Component.translatable("item.nucleoid_creator_tools.region_visibility_filter." + (this.filter == NO_FILTER ? "no_filter" : "set_filter"));
+        this.player.displayClientMessage(message, true);
 
         return true;
     }
@@ -115,7 +115,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
                 tracing.setTarget(pos);
                 this.traced = tracing.asComplete();
                 this.tracing = null;
-                this.player.sendMessage(Text.translatable("item.nucleoid_creator_tools.add_region.trace_mode.commit"), true);
+                this.player.displayClientMessage(Component.translatable("item.nucleoid_creator_tools.add_region.trace_mode.commit"), true);
             } else {
                 this.tracing = new PartialRegion(pos);
             }
@@ -125,7 +125,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private void changeTraceMode() {
         var nextMode = this.traceMode.next();
         this.traceMode = nextMode;
-        this.player.sendMessage(Text.translatable("item.nucleoid_creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
+        this.player.displayClientMessage(Component.translatable("item.nucleoid_creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
     }
 
     @Override
@@ -156,13 +156,13 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         TextDisplayElement element = new TextDisplayElement();
         element.setSeeThrough(true);
         element.setTextOpacity((byte) 150);
-        element.setTextAlignment(DisplayEntity.TextDisplayEntity.TextAlignment.LEFT);
-        element.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
+        element.setTextAlignment(Display.TextDisplay.Align.LEFT);
+        element.setBillboardMode(Display.BillboardConstraints.CENTER);
         element.setLineWidth(350);
 
         ElementHolder holder = new ElementHolder();
         holder.addElement(element);
-        var attachment = SinglePlayerChunkAttachment.of(holder, this.player.getEntityWorld(), region.bounds().center(), this.player);
+        var attachment = SinglePlayerChunkAttachment.of(holder, this.player.level(), region.bounds().center(), this.player);
 
         var marker = new Marker(element, attachment);
         marker.update(region, true, this.distanceSquaredToRegion(region));
@@ -199,7 +199,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         var regionBounds = region.bounds();
         var min = regionBounds.min();
         var max = regionBounds.max();
-        return this.player.squaredDistanceTo(
+        return this.player.distanceToSqr(
                 (min.getX() + max.getX()) / 2.0,
                 (min.getY() + max.getY()) / 2.0,
                 (min.getZ() + max.getZ()) / 2.0
@@ -225,14 +225,14 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         return (HashCommon.mix(marker.hashCode()) & 0xFFFFFF) | (opacity << 24);
     }
 
-    public static Text textForRegion(WorkspaceRegion region, boolean showDetails) {
-        MutableText text = Text.empty()
-                .append(Text.literal(region.marker()).formatted(Formatting.BOLD));
+    public static Component textForRegion(WorkspaceRegion region, boolean showDetails) {
+        MutableComponent text = Component.empty()
+                .append(Component.literal(region.marker()).withStyle(ChatFormatting.BOLD));
 
         if (!region.data().isEmpty() && showDetails) {
             text
-                    .append(ScreenTexts.LINE_BREAK)
-                    .append(new NbtTextFormatter("  ").apply(region.data()));
+                    .append(CommonComponents.NEW_LINE)
+                    .append(new TextComponentTagVisitor("  ").visit(region.data()));
         }
 
         return text;

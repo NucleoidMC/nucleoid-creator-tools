@@ -1,27 +1,27 @@
 package xyz.nucleoid.creator_tools.workspace.editor.payload.s2c;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceRegion;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 import java.util.Collection;
 
-public record WorkspaceRegionsS2CPayload(String marker, Collection<Entry> regions) implements CustomPayload {
-    public static final CustomPayload.Id<WorkspaceRegionsS2CPayload> ID = WorkspaceNetworking.id("workspace/regions");
+public record WorkspaceRegionsS2CPayload(String marker, Collection<Entry> regions) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<WorkspaceRegionsS2CPayload> ID = WorkspaceNetworking.id("workspace/regions");
 
-    public static final PacketCodec<PacketByteBuf, WorkspaceRegionsS2CPayload> CODEC = PacketCodec.of(WorkspaceRegionsS2CPayload::write, WorkspaceRegionsS2CPayload::read);
+    public static final StreamCodec<FriendlyByteBuf, WorkspaceRegionsS2CPayload> CODEC = StreamCodec.ofMember(WorkspaceRegionsS2CPayload::write, WorkspaceRegionsS2CPayload::read);
 
     @Override
-    public CustomPayload.Id<WorkspaceRegionsS2CPayload> getId() {
+    public CustomPacketPayload.Type<WorkspaceRegionsS2CPayload> type() {
         return ID;
     }
 
-    public void write(PacketByteBuf buf) {
-        buf.writeString(this.marker);
+    public void write(FriendlyByteBuf buf) {
+        buf.writeUtf(this.marker);
 
         buf.writeCollection(this.regions, (bufx, entry) -> {
             bufx.writeVarInt(entry.runtimeId());
@@ -30,8 +30,8 @@ public record WorkspaceRegionsS2CPayload(String marker, Collection<Entry> region
         });
     }
 
-    public static WorkspaceRegionsS2CPayload read(PacketByteBuf buf) {
-        var marker = buf.readString();
+    public static WorkspaceRegionsS2CPayload read(FriendlyByteBuf buf) {
+        var marker = buf.readUtf();
 
         var entries = buf.readList(bufx -> {
             int runtimeId = bufx.readVarInt();
@@ -44,7 +44,7 @@ public record WorkspaceRegionsS2CPayload(String marker, Collection<Entry> region
         return new WorkspaceRegionsS2CPayload(marker, entries);
     }
 
-    public record Entry(int runtimeId, BlockBounds bounds, NbtCompound data) {
+    public record Entry(int runtimeId, BlockBounds bounds, CompoundTag data) {
         public WorkspaceRegion toRegion(String marker) {
             return new WorkspaceRegion(this.runtimeId, marker, this.bounds, this.data);
         }

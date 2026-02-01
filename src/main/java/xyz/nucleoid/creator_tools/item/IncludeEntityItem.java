@@ -1,66 +1,66 @@
 package xyz.nucleoid.creator_tools.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUsageContext;
-import net.minecraft.item.Items;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.UseOnContext;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 public final class IncludeEntityItem extends Item implements PolymerItem {
-    public IncludeEntityItem(Settings settings) {
+    public IncludeEntityItem(Properties settings) {
         super(settings);
     }
 
     @Override
-    public ActionResult useOnBlock(ItemUsageContext context) {
-        return ActionResult.FAIL;
+    public InteractionResult useOn(UseOnContext context) {
+        return InteractionResult.FAIL;
     }
 
     @Override
-    public ActionResult useOnEntity(ItemStack stack, PlayerEntity user, LivingEntity entity, Hand hand) {
-        var world = user.getEntityWorld();
-        if (!world.isClient()) {
+    public InteractionResult interactLivingEntity(ItemStack stack, Player user, LivingEntity entity, InteractionHand hand) {
+        var world = user.level();
+        if (!world.isClientSide()) {
             var workspaceManager = MapWorkspaceManager.get(world.getServer());
 
-            var workspace = workspaceManager.byDimension(world.getRegistryKey());
+            var workspace = workspaceManager.byDimension(world.dimension());
             if (workspace != null) {
-                if (!workspace.getBounds().contains(entity.getBlockPos())) {
-                    user.sendMessage(
-                            Text.translatable("item.nucleoid_creator_tools.include_entity.target_not_in_map", workspace.getIdentifier())
-                                    .formatted(Formatting.RED),
+                if (!workspace.getBounds().contains(entity.blockPosition())) {
+                    user.displayClientMessage(
+                            Component.translatable("item.nucleoid_creator_tools.include_entity.target_not_in_map", workspace.getIdentifier())
+                                    .withStyle(ChatFormatting.RED),
                             false);
-                    return ActionResult.FAIL;
+                    return InteractionResult.FAIL;
                 }
 
-                if (workspace.containsEntity(entity.getUuid())) {
-                    workspace.removeEntity(entity.getUuid());
-                    user.sendMessage(
-                            Text.translatable("item.nucleoid_creator_tools.include_entity.removed", workspace.getIdentifier()),
+                if (workspace.containsEntity(entity.getUUID())) {
+                    workspace.removeEntity(entity.getUUID());
+                    user.displayClientMessage(
+                            Component.translatable("item.nucleoid_creator_tools.include_entity.removed", workspace.getIdentifier()),
                             true);
                 } else {
-                    workspace.addEntity(entity.getUuid());
-                    user.sendMessage(
-                            Text.translatable("item.nucleoid_creator_tools.include_entity.added", workspace.getIdentifier()),
+                    workspace.addEntity(entity.getUUID());
+                    user.displayClientMessage(
+                            Component.translatable("item.nucleoid_creator_tools.include_entity.added", workspace.getIdentifier()),
                             true);
                 }
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             } else {
-                user.sendMessage(Text.translatable("item.nucleoid_creator_tools.include_entity.player_not_in_map").formatted(Formatting.RED),
+                user.displayClientMessage(Component.translatable("item.nucleoid_creator_tools.include_entity.player_not_in_map").withStyle(ChatFormatting.RED),
                         false);
-                return ActionResult.FAIL;
+                return InteractionResult.FAIL;
             }
         }
 
-        return ActionResult.FAIL;
+        return InteractionResult.FAIL;
     }
 
     @Override

@@ -4,8 +4,8 @@
   "package": "xyz.nucleoid.creator_tools.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ServerPlayerEntityMixin",
-    "ServerWorldMixin"
+    "ServerPlayerMixin",
+    "ServerLevelMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -7,27 +7,23 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import me.lucko.fabric.api.permissions.v0.Permissions;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.IdentifierArgumentType;
-import net.minecraft.command.argument.NbtCompoundArgumentType;
+import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.CompoundTagArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryOps;
+import net.minecraft.network.chat.*;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.Texts;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.dimension.DimensionTypes;
+import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.phys.Vec3;
 import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.MapTemplateExporter;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
@@ -43,32 +39,32 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
-import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.argument;
+import static net.minecraft.commands.Commands.literal;
 
 public final class MapManageCommand {
     public static final SimpleCommandExceptionType MAP_NOT_HERE = new SimpleCommandExceptionType(
-            Text.translatable("text.nucleoid_creator_tools.map.map_not_here")
+            Component.translatable("text.nucleoid_creator_tools.map.map_not_here")
     );
 
     public static final DynamicCommandExceptionType MAP_ALREADY_EXISTS = new DynamicCommandExceptionType(arg ->
-            Text.stringifiedTranslatable("text.nucleoid_creator_tools.map.open.map_already_exists", arg)
+            Component.translatableEscape("text.nucleoid_creator_tools.map.open.map_already_exists", arg)
     );
 
     public static final SimpleCommandExceptionType MAP_MISMATCH = new SimpleCommandExceptionType(
-            Text.translatable("text.nucleoid_creator_tools.map.delete.map_mismatch")
+            Component.translatable("text.nucleoid_creator_tools.map.delete.map_mismatch")
     );
 
     public static final DynamicCommandExceptionType INVALID_GENERATOR_CONFIG = new DynamicCommandExceptionType(arg ->
-            Text.stringifiedTranslatable("text.nucleoid_creator_tools.map.open.invalid_generator_config", arg)
+            Component.translatableEscape("text.nucleoid_creator_tools.map.open.invalid_generator_config", arg)
     );
 
     // @formatter:off
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
-            literal("map").requires(Permissions.require("nucleoid_creator_extras.map", 2))
+            literal("map").requires(Permissions.require("nucleoid_creator_extras.map", PermissionLevel.GAMEMASTERS))
                 .then(literal("open")
-                    .then(argument("workspace", IdentifierArgumentType.identifier())
+                    .then(argument("workspace", IdentifierArgument.id())
                     .executes(context -> MapManageCommand.openWorkspace(context, null))
                         .then(literal("like")
                             .then(DimensionOptionsArgument.argument("dimension")
@@ -76,20 +72,20 @@ public final class MapManageCommand {
                         ))
                         .then(literal("with")
                             .then(ChunkGeneratorArgument.argument("generator")
-                            .then(argument("config", NbtCompoundArgumentType.nbtCompound())
+                            .then(argument("config", CompoundTagArgument.compoundTag())
                             .executes(MapManageCommand::openWorkspaceByGenerator)
                         )))
                 ))
                 .then(literal("origin")
                     .then(MapWorkspaceArgument.argument("workspace")
-                    .then(argument("origin", BlockPosArgumentType.blockPos())
+                    .then(argument("origin", BlockPosArgument.blockPos())
                     .executes(MapManageCommand::setWorkspaceOrigin)
                 )))
                 .then(literal("bounds")
                     .then(MapWorkspaceArgument.argument("workspace")
                         .executes(MapManageCommand::getWorkspaceBounds)
-                        .then(argument("min", BlockPosArgumentType.blockPos())
-                            .then(argument("max", BlockPosArgumentType.blockPos())
+                        .then(argument("min", BlockPosArgument.blockPos())
+                            .then(argument("max", BlockPosArgument.blockPos())
                             .executes(MapManageCommand::setWorkspaceBounds)
                         ))
                 ))
@@ -111,31 +107,31 @@ public final class MapManageCommand {
                     .executes(MapManageCommand::deleteWorkspace)
                 )))
                 .then(literal("import")
-                    .then(argument("location", IdentifierArgumentType.identifier())
-                    .then(argument("to_workspace", IdentifierArgumentType.identifier())
-                        .then(argument("origin", BlockPosArgumentType.blockPos())
+                    .then(argument("location", IdentifierArgument.id())
+                    .then(argument("to_workspace", IdentifierArgument.id())
+                        .then(argument("origin", BlockPosArgument.blockPos())
                             .executes(context -> {
-                                BlockPos origin = BlockPosArgumentType.getBlockPos(context, "origin");
+                                BlockPos origin = BlockPosArgument.getBlockPos(context, "origin");
                                 return MapManageCommand.importWorkspace(context, origin);
                             })
                         )
-                    .executes(context -> MapManageCommand.importWorkspace(context, BlockPos.ORIGIN))
+                    .executes(context -> MapManageCommand.importWorkspace(context, BlockPos.ZERO))
                 )))
         );
     }
     // @formatter:on
 
-    private static int openWorkspace(CommandContext<ServerCommandSource> context, RuntimeWorldConfig worldConfig) throws CommandSyntaxException {
+    private static int openWorkspace(CommandContext<CommandSourceStack> context, RuntimeWorldConfig worldConfig) throws CommandSyntaxException {
         var source = context.getSource();
 
-        var givenIdentifier = IdentifierArgumentType.getIdentifier(context, "workspace");
+        var givenIdentifier = IdentifierArgument.getId(context, "workspace");
 
         Identifier identifier;
         if (givenIdentifier.getNamespace().equals("minecraft")) {
-            var sourceName = context.getSource().getName()
+            var sourceName = context.getSource().getTextName()
                     .toLowerCase(Locale.ROOT)
                     .replaceAll("\\s", "_");
-            identifier = Identifier.of(sourceName, givenIdentifier.getPath());
+            identifier = Identifier.fromNamespaceAndPath(sourceName, givenIdentifier.getPath());
         } else {
             identifier = givenIdentifier;
         }
@@ -152,113 +148,113 @@ public final class MapManageCommand {
                 workspaceManager.open(identifier);
             }
 
-            source.sendFeedback(
-                    () -> Text.translatable("text.nucleoid_creator_tools.map.open.success",
-                            Text.of(identifier),
-                            Text.translatable("text.nucleoid_creator_tools.map.open.join_command", Text.of(identifier)).styled(style ->
-                                    style.withColor(Formatting.GREEN)
+            source.sendSuccess(
+                    () -> Component.translatable("text.nucleoid_creator_tools.map.open.success",
+                            Component.translationArg(identifier),
+                            Component.translatable("text.nucleoid_creator_tools.map.open.join_command", Component.translationArg(identifier)).withStyle(style ->
+                                    style.withColor(ChatFormatting.GREEN)
                                             .withClickEvent(new ClickEvent.SuggestCommand("/map join " + identifier)))),
                     false
             );
         } catch (Throwable throwable) {
-            source.sendError(Text.translatable("text.nucleoid_creator_tools.map.open.error"));
+            source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.open.error"));
             CreatorTools.LOGGER.error("Failed to open workspace", throwable);
         }
 
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int openWorkspaceLikeDimension(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int openWorkspaceLikeDimension(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var dimension = DimensionOptionsArgument.get(context, "dimension");
-        var reg = context.getSource().getServer().getRegistryManager().getOrThrow(RegistryKeys.DIMENSION_TYPE);
+        var reg = context.getSource().getServer().registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE);
         var worldConfig = new RuntimeWorldConfig()
-                .setDimensionType(reg.getOrThrow(reg.getKey(dimension.dimensionTypeEntry().value()).get()))
-                .setGenerator(dimension.chunkGenerator());
+                .setDimensionType(reg.getOrThrow(reg.getResourceKey(dimension.type().value()).get()))
+                .setGenerator(dimension.generator());
 
         return MapManageCommand.openWorkspace(context, worldConfig);
     }
 
-    private static int openWorkspaceByGenerator(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int openWorkspaceByGenerator(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var generatorCodec = ChunkGeneratorArgument.get(context, "generator");
-        var config = NbtCompoundArgumentType.getNbtCompound(context, "config");
+        var config = CompoundTagArgument.getCompoundTag(context, "config");
 
         var server = context.getSource().getServer();
-        var ops = RegistryOps.of(
+        var ops = RegistryOps.create(
                 NbtOps.INSTANCE,
-                server.getRegistryManager()
+                server.registryAccess()
         );
 
         var chunkGenerator = generatorCodec.codec().parse(ops, config).getOrThrow(INVALID_GENERATOR_CONFIG::create);
 
         var worldConfig = new RuntimeWorldConfig()
-                .setDimensionType(DimensionTypes.OVERWORLD)
+                .setDimensionType(BuiltinDimensionTypes.OVERWORLD)
                 .setGenerator(chunkGenerator);
         return MapManageCommand.openWorkspace(context, worldConfig);
     }
 
-    private static int setWorkspaceOrigin(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int setWorkspaceOrigin(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var source = context.getSource();
 
         var workspace = MapWorkspaceArgument.get(context, "workspace");
-        var origin = BlockPosArgumentType.getBlockPos(context, "origin");
+        var origin = BlockPosArgument.getBlockPos(context, "origin");
 
         workspace.setOrigin(origin);
 
-        source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.origin.set"), false);
+        source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.origin.set"), false);
 
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int getWorkspaceBounds(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int getWorkspaceBounds(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var source = context.getSource();
 
         var workspace = MapWorkspaceArgument.get(context, "workspace");
         var bounds = workspace.getBounds();
 
-        source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.bounds.get", getClickablePosText(bounds.min()), getClickablePosText(bounds.max())), false);
+        source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.bounds.get", getClickablePosText(bounds.min()), getClickablePosText(bounds.max())), false);
 
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setWorkspaceBounds(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int setWorkspaceBounds(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var source = context.getSource();
 
         var workspace = MapWorkspaceArgument.get(context, "workspace");
-        var min = BlockPosArgumentType.getBlockPos(context, "min");
-        var max = BlockPosArgumentType.getBlockPos(context, "max");
+        var min = BlockPosArgument.getBlockPos(context, "min");
+        var max = BlockPosArgument.getBlockPos(context, "max");
 
         workspace.setBounds(BlockBounds.of(min, max));
 
-        source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.bounds.set"), false);
+        source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.bounds.set"), false);
 
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int joinWorkspace(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int joinWorkspace(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var source = context.getSource();
-        var player = source.getPlayerOrThrow();
+        var player = source.getPlayerOrException();
 
         var workspace = MapWorkspaceArgument.get(context, "workspace");
 
-        var workspaceWorld = workspace.getWorld();
+        var workspaceWorld = workspace.getLevel();
 
-        var returnPosition = WorkspaceTraveler.getReturnFor(player, workspaceWorld.getRegistryKey());
+        var returnPosition = WorkspaceTraveler.getReturnFor(player, workspaceWorld.dimension());
         if (returnPosition != null) {
             returnPosition.applyTo(player);
         } else {
-            player.teleportTo(new TeleportTarget(workspaceWorld, new Vec3d(0.0, 64.0, 0.0), Vec3d.ZERO, 0.0F, 0.0F, TeleportTarget.NO_OP));
+            player.teleport(new TeleportTransition(workspaceWorld, new Vec3(0.0, 64.0, 0.0), Vec3.ZERO, 0.0F, 0.0F, TeleportTransition.DO_NOTHING));
         }
 
-        if (player.getAbilities().allowFlying) {
+        if (player.getAbilities().mayfly) {
             player.getAbilities().flying = true;
-            player.sendAbilitiesUpdate();
+            player.onUpdateAbilities();
         }
 
-        source.sendFeedback(
-                () -> Text.translatable("text.nucleoid_creator_tools.map.join.success",
-                        Text.of(workspace.getIdentifier()),
-                        Text.literal("/map leave").styled(style ->
-                                style.withColor(Formatting.GREEN)
+        source.sendSuccess(
+                () -> Component.translatable("text.nucleoid_creator_tools.map.join.success",
+                        Component.translationArg(workspace.getIdentifier()),
+                        Component.literal("/map leave").withStyle(style ->
+                                style.withColor(ChatFormatting.GREEN)
                                         .withClickEvent(new ClickEvent.SuggestCommand("/map leave")))),
                 false
         );
@@ -266,12 +262,12 @@ public final class MapManageCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int leaveMap(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int leaveMap(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var source = context.getSource();
-        var player = source.getPlayerOrThrow();
+        var player = source.getPlayerOrException();
 
         var workspaceManager = MapWorkspaceManager.get(source.getServer());
-        var workspace = workspaceManager.byDimension(player.getEntityWorld().getRegistryKey());
+        var workspace = workspaceManager.byDimension(player.level().dimension());
 
         if (workspace == null) {
             throw MAP_NOT_HERE.create();
@@ -281,19 +277,19 @@ public final class MapManageCommand {
         if (returnPosition != null) {
             returnPosition.applyTo(player);
         } else {
-            var overworld = source.getServer().getOverworld();
+            var overworld = source.getServer().overworld();
             ReturnPosition.ofSpawn(overworld).applyTo(player);
         }
 
-        source.sendFeedback(
-                () -> Text.translatable("text.nucleoid_creator_tools.map.leave.success", Text.of(workspace.getIdentifier())),
+        source.sendSuccess(
+                () -> Component.translatable("text.nucleoid_creator_tools.map.leave.success", Component.translationArg(workspace.getIdentifier())),
                 false
         );
 
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int exportMap(CommandContext<ServerCommandSource> context, boolean includeEntities) throws CommandSyntaxException {
+    private static int exportMap(CommandContext<CommandSourceStack> context, boolean includeEntities) throws CommandSyntaxException {
         var source = context.getSource();
 
         var workspace = MapWorkspaceArgument.get(context, "workspace");
@@ -302,24 +298,24 @@ public final class MapManageCommand {
 
         var bounds = template.getBounds();
         if (bounds.min().getY() < 0 || bounds.max().getY() > 255) {
-            source.sendFeedback(
-                    () -> Text.translatable("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.1").append("\n")
-                            .append(Text.translatable("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.2")).append("\n")
-                            .append(Text.translatable("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.3"))
-                            .formatted(Formatting.YELLOW),
+            source.sendSuccess(
+                    () -> Component.translatable("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.1").append("\n")
+                            .append(Component.translatable("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.2")).append("\n")
+                            .append(Component.translatable("text.nucleoid_creator_tools.map.export.vertical_bounds_warning.line.3"))
+                            .withStyle(ChatFormatting.YELLOW),
                     false
             );
         }
 
-        var registries = source.getRegistryManager();
+        var registries = source.registryAccess();
         var future = MapTemplateExporter.saveToExport(template, workspace.getIdentifier(), registries);
 
         future.handle((v, throwable) -> {
             if (throwable == null) {
-                source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.export.success", Text.of(workspace.getIdentifier())), false);
+                source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.export.success", Component.translationArg(workspace.getIdentifier())), false);
             } else {
                 CreatorTools.LOGGER.error("Failed to export map to '{}'", workspace.getIdentifier(), throwable);
-                source.sendError(Text.translatable("text.nucleoid_creator_tools.map.export.error"));
+                source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.export.error"));
             }
             return null;
         });
@@ -327,7 +323,7 @@ public final class MapManageCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int deleteWorkspace(CommandContext<ServerCommandSource> context) throws CommandSyntaxException {
+    private static int deleteWorkspace(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var source = context.getSource();
 
         var workspace = MapWorkspaceArgument.get(context, "workspace_once");
@@ -339,26 +335,26 @@ public final class MapManageCommand {
         var workspaceManager = MapWorkspaceManager.get(source.getServer());
         boolean deleted = workspaceManager.delete(workspace);
 
-        source.sendFeedback(() -> {
-            MutableText message;
+        source.sendSuccess(() -> {
+            MutableComponent message;
             if (deleted) {
-                message = Text.translatable("text.nucleoid_creator_tools.map.delete.success", Text.of(workspace.getIdentifier()));
+                message = Component.translatable("text.nucleoid_creator_tools.map.delete.success", Component.translationArg(workspace.getIdentifier()));
             } else {
-                message = Text.translatable("text.nucleoid_creator_tools.map.delete.error", Text.of(workspace.getIdentifier()));
+                message = Component.translatable("text.nucleoid_creator_tools.map.delete.error", Component.translationArg(workspace.getIdentifier()));
             }
 
-            return message.formatted(Formatting.RED);
+            return message.withStyle(ChatFormatting.RED);
         }, false);
 
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int importWorkspace(CommandContext<ServerCommandSource> context, BlockPos origin) throws CommandSyntaxException {
+    private static int importWorkspace(CommandContext<CommandSourceStack> context, BlockPos origin) throws CommandSyntaxException {
         var source = context.getSource();
         var server = source.getServer();
 
-        var location = IdentifierArgumentType.getIdentifier(context, "location");
-        var toWorkspaceId = IdentifierArgumentType.getIdentifier(context, "to_workspace");
+        var location = IdentifierArgument.getId(context, "location");
+        var toWorkspaceId = IdentifierArgument.getId(context, "to_workspace");
 
         var workspaceManager = MapWorkspaceManager.get(server);
         if (workspaceManager.byId(toWorkspaceId) != null) {
@@ -369,7 +365,7 @@ public final class MapManageCommand {
 
         future.thenAcceptAsync(template -> {
             if (template != null) {
-                source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.import.importing"), false);
+                source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.import.importing"), false);
 
                 var workspace = workspaceManager.open(toWorkspaceId);
 
@@ -384,18 +380,18 @@ public final class MapManageCommand {
 
                 try {
                     var placer = new MapTemplatePlacer(template);
-                    placer.placeAt(workspace.getWorld(), origin);
-                    source.sendFeedback(() ->
-                                    Text.translatable("text.nucleoid_creator_tools.map.import.success",
-                                            Text.of(toWorkspaceId).copy().styled(style -> style
-                                                    .withColor(Formatting.GREEN)
+                    placer.placeAt(workspace.getLevel(), origin);
+                    source.sendSuccess(() ->
+                                    Component.translatable("text.nucleoid_creator_tools.map.import.success",
+                                            Component.translationArg(toWorkspaceId).copy().withStyle(style -> style
+                                                    .withColor(ChatFormatting.GREEN)
                                                     .withClickEvent(new ClickEvent.SuggestCommand("/map join " + toWorkspaceId)))),
                             false);
                 } catch (Exception e) {
                     CreatorTools.LOGGER.error("Failed to place template into world!", e);
                 }
             } else {
-                source.sendError(Text.translatable("text.nucleoid_creator_tools.map.import.no_template_found", Text.of(location)));
+                source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.import.no_template_found", Component.translationArg(location)));
             }
         }, server);
 
@@ -405,7 +401,7 @@ public final class MapManageCommand {
     private static CompletableFuture<MapTemplate> tryLoadTemplateForImport(MinecraftServer server, Identifier location) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return MapTemplateExporter.loadFromExport(location, server.getRegistryManager());
+                return MapTemplateExporter.loadFromExport(location, server.registryAccess());
             } catch (IOException ignored) {
                 try {
                     return MapTemplateSerializer.loadFromResource(server, location);
@@ -414,16 +410,16 @@ public final class MapManageCommand {
                     return null;
                 }
             }
-        }, Util.getIoWorkerExecutor());
+        }, Util.ioPool());
     }
 
-    protected static Text getClickablePosText(BlockPos pos) {
+    static Component getClickablePosText(BlockPos pos) {
         var linkCommand = "/tp @s " + pos.getX() + " " + pos.getY() + " " + pos.getZ();
         var linkStyle = Style.EMPTY
                 .withClickEvent(new ClickEvent.SuggestCommand(linkCommand))
-                .withHoverEvent(new HoverEvent.ShowText(Text.translatable("chat.coordinates.tooltip")))
-                .withFormatting(Formatting.GREEN);
+                .withHoverEvent(new HoverEvent.ShowText(Component.translatable("chat.coordinates.tooltip")))
+                .applyFormat(ChatFormatting.GREEN);
 
-        return Texts.bracketed(Text.translatable("chat.coordinates", pos.getX(), pos.getY(), pos.getZ())).setStyle(linkStyle);
+        return ComponentUtils.wrapInSquareBrackets(Component.translatable("chat.coordinates", pos.getX(), pos.getY(), pos.getZ())).setStyle(linkStyle);
     }
 }

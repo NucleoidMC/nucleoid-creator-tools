@@ -1,27 +1,27 @@
 package xyz.nucleoid.creator_tools.workspace.editor.payload.s2c;
 
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 import xyz.nucleoid.map_templates.BlockBounds;
 
-public record WorkspaceEnterS2CPayload(Identifier workspaceId, BlockBounds bounds, Identifier worldId, NbtCompound data) implements CustomPayload {
-    public static final CustomPayload.Id<WorkspaceEnterS2CPayload> ID = WorkspaceNetworking.id("workspace/enter");
+public record WorkspaceEnterS2CPayload(Identifier workspaceId, BlockBounds bounds, Identifier worldId, CompoundTag data) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<WorkspaceEnterS2CPayload> ID = WorkspaceNetworking.id("workspace/enter");
 
-    public static final PacketCodec<PacketByteBuf, WorkspaceEnterS2CPayload> CODEC = PacketCodec.tuple(
-            Identifier.PACKET_CODEC, WorkspaceEnterS2CPayload::workspaceId,
+    public static final StreamCodec<FriendlyByteBuf, WorkspaceEnterS2CPayload> CODEC = StreamCodec.composite(
+            Identifier.STREAM_CODEC, WorkspaceEnterS2CPayload::workspaceId,
             WorkspaceNetworking.BOUNDS_CODEC, WorkspaceEnterS2CPayload::bounds,
-            Identifier.PACKET_CODEC, WorkspaceEnterS2CPayload::worldId,
-            PacketCodecs.UNLIMITED_NBT_COMPOUND, WorkspaceEnterS2CPayload::data,
+            Identifier.STREAM_CODEC, WorkspaceEnterS2CPayload::worldId,
+            ByteBufCodecs.TRUSTED_COMPOUND_TAG, WorkspaceEnterS2CPayload::data,
             WorkspaceEnterS2CPayload::new
     );
 
     @Override
-    public CustomPayload.Id<WorkspaceEnterS2CPayload> getId() {
+    public CustomPacketPayload.Type<WorkspaceEnterS2CPayload> type() {
         return ID;
     }
 }

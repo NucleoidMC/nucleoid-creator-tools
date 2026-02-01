@@ -1,6 +1,6 @@
 package xyz.nucleoid.creator_tools.workspace.trace;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import xyz.nucleoid.map_templates.BlockBounds;
 
 public class PartialRegion {
