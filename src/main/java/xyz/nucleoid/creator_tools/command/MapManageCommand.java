@@ -155,7 +155,9 @@ public final class MapManageCommand {
             source.sendFeedback(
                     () -> Text.translatable("text.nucleoid_creator_tools.map.open.success",
                             Text.of(identifier),
-                            Text.translatable("text.nucleoid_creator_tools.map.open.join_command", Text.of(identifier)).formatted(Formatting.GRAY)),
+                            Text.translatable("text.nucleoid_creator_tools.map.open.join_command", Text.of(identifier)).styled(style ->
+                                    style.withColor(Formatting.GREEN)
+                                            .withClickEvent(new ClickEvent.SuggestCommand("/map join " + identifier)))),
                     false
             );
         } catch (Throwable throwable) {
@@ -255,7 +257,9 @@ public final class MapManageCommand {
         source.sendFeedback(
                 () -> Text.translatable("text.nucleoid_creator_tools.map.join.success",
                         Text.of(workspace.getIdentifier()),
-                        Text.translatable("text.nucleoid_creator_tools.map.join.leave_command").formatted(Formatting.GRAY)),
+                        Text.literal("/map leave").styled(style ->
+                                style.withColor(Formatting.GREEN)
+                                        .withClickEvent(new ClickEvent.SuggestCommand("/map leave")))),
                 false
         );
 
@@ -381,7 +385,12 @@ public final class MapManageCommand {
                 try {
                     var placer = new MapTemplatePlacer(template);
                     placer.placeAt(workspace.getWorld(), origin);
-                    source.sendFeedback(() -> Text.translatable("text.nucleoid_creator_tools.map.import.success", Text.of(toWorkspaceId)), false);
+                    source.sendFeedback(() ->
+                                    Text.translatable("text.nucleoid_creator_tools.map.import.success",
+                                            Text.of(toWorkspaceId).copy().styled(style -> style
+                                                    .withColor(Formatting.GREEN)
+                                                    .withClickEvent(new ClickEvent.SuggestCommand("/map join " + toWorkspaceId)))),
+                            false);
                 } catch (Exception e) {
                     CreatorTools.LOGGER.error("Failed to place template into world!", e);
                 }

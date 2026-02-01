@@ -37,7 +37,6 @@
   "text.nucleoid_creator_tools.map.import.importing": "Importing workspace...",
   "text.nucleoid_creator_tools.map.import.no_template_found": "No template found at '%s'!",
   "text.nucleoid_creator_tools.map.import.success": "Imported workspace into '%s'!",
-  "text.nucleoid_creator_tools.map.join.leave_command": "/map leave",
   "text.nucleoid_creator_tools.map.join.success": "You have joined '%s'! Use %s to return to your original position",
   "text.nucleoid_creator_tools.map.leave.success": "You have left '%s'!",
   "text.nucleoid_creator_tools.map.map_not_here": "No map found here",
