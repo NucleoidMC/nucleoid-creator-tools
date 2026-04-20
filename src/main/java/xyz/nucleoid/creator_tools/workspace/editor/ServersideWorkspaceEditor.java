@@ -90,7 +90,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
         }
 
         Component message = Component.translatable("item.nucleoid_creator_tools.region_visibility_filter." + (this.filter == NO_FILTER ? "no_filter" : "set_filter"));
-        this.player.displayClientMessage(message, true);
+        this.player.sendSystemMessage(message, true);
 
         return true;
     }
@@ -115,7 +115,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
                 tracing.setTarget(pos);
                 this.traced = tracing.asComplete();
                 this.tracing = null;
-                this.player.displayClientMessage(Component.translatable("item.nucleoid_creator_tools.add_region.trace_mode.commit"), true);
+                this.player.sendSystemMessage(Component.translatable("item.nucleoid_creator_tools.add_region.trace_mode.commit"), true);
             } else {
                 this.tracing = new PartialRegion(pos);
             }
@@ -125,7 +125,7 @@ public final class ServersideWorkspaceEditor implements WorkspaceEditor {
     private void changeTraceMode() {
         var nextMode = this.traceMode.next();
         this.traceMode = nextMode;
-        this.player.displayClientMessage(Component.translatable("item.nucleoid_creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
+        this.player.sendSystemMessage(Component.translatable("item.nucleoid_creator_tools.add_region.trace_mode.changed", nextMode.getName()), true);
     }
 
     @Override

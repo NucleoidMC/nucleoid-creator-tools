@@ -1,7 +1,9 @@
 package xyz.nucleoid.creator_tools.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -21,7 +23,6 @@ import org.jspecify.annotations.NonNull;
 import xyz.nucleoid.creator_tools.component.CreatorToolsDataComponentTypes;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.editor.ServersideWorkspaceEditor;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -61,13 +62,13 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
     }
 
     @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
+    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
         return null;
     }
 
     @Override
-    public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag tooltipType, PacketContext context) {
-        var displayStack = PolymerItem.super.getPolymerItemStack(stack, tooltipType, context);
+    public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag tooltipType, PacketContext context, HolderLookup.Provider lookup) {
+        var displayStack = PolymerItem.super.getPolymerItemStack(stack, tooltipType, context, lookup);
         var regions = getRegions(stack);
 
         if (regions != null && !regions.isEmpty()) {

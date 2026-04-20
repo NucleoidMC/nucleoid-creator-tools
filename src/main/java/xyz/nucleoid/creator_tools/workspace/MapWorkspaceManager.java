@@ -21,8 +21,8 @@ import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditor;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditorManager;
 import xyz.nucleoid.fantasy.Fantasy;
-import xyz.nucleoid.fantasy.RuntimeWorldConfig;
-import xyz.nucleoid.fantasy.RuntimeWorldHandle;
+import xyz.nucleoid.fantasy.RuntimeLevelConfig;
+import xyz.nucleoid.fantasy.RuntimeLevelHandle;
 import xyz.nucleoid.fantasy.util.VoidChunkGenerator;
 import xyz.nucleoid.map_templates.BlockBounds;
 
@@ -30,8 +30,9 @@ import java.io.IOException;
 import java.util.*;
 
 public final class MapWorkspaceManager extends SavedData {
-    private static final String LEGACY_KEY = "plasmid:map_workspaces";
-    public static final String KEY = CreatorTools.ID + "_map_workspaces";
+    private static final String VERY_OLD_KEY = "plasmid:map_workspaces";
+    public static final String OLD_KEY = CreatorTools.ID + "_map_workspaces";
+    public static final Identifier KEY = CreatorTools.identifier("map_workspaces");
 
     private static final BlockBounds DEFAULT_BOUNDS = BlockBounds.of(-16, 64, -16, 16, 96, 16);
 
@@ -55,14 +56,14 @@ public final class MapWorkspaceManager extends SavedData {
             return nbt;
         });
 
-        var type = new SavedDataType<>(
+        var type = new SavedDataType<MapWorkspaceManager>(
                 KEY,
                 () -> new MapWorkspaceManager(server),
                 codec,
                 null
         );
 
-        return server.overworld().getDataStorage().computeIfAbsent(type);
+        return server.getDataStorage().computeIfAbsent(type);
     }
 
     public void tick() {
@@ -86,7 +87,7 @@ public final class MapWorkspaceManager extends SavedData {
         return this.open(identifier, this.createDefaultConfig());
     }
 
-    public MapWorkspace open(Identifier identifier, RuntimeWorldConfig config) {
+    public MapWorkspace open(Identifier identifier, RuntimeLevelConfig config) {
         var existingWorkspace = this.workspacesById.get(identifier);
         if (existingWorkspace != null) {
             return existingWorkspace;
@@ -97,7 +98,7 @@ public final class MapWorkspaceManager extends SavedData {
 
         var workspace = new MapWorkspace(worldHandle, identifier, DEFAULT_BOUNDS);
         this.workspacesById.put(identifier, workspace);
-        this.workspacesByDimension.put(worldHandle.asWorld().dimension(), workspace);
+        this.workspacesByDimension.put(worldHandle.asLevel().dimension(), workspace);
         this.editorManager.addWorkspace(workspace);
 
         return workspace;
@@ -161,7 +162,7 @@ public final class MapWorkspaceManager extends SavedData {
 
                 var workspace = MapWorkspace.deserialize(worldHandle, root);
                 manager.workspacesById.put(identifier, workspace);
-                manager.workspacesByDimension.put(worldHandle.asWorld().dimension(), workspace);
+                manager.workspacesByDimension.put(worldHandle.asLevel().dimension(), workspace);
                 manager.editorManager.addWorkspace(workspace);
             }
         }
@@ -182,17 +183,17 @@ public final class MapWorkspaceManager extends SavedData {
         return true;
     }
 
-    private RuntimeWorldHandle getOrCreateDimension(Identifier identifier, RuntimeWorldConfig config) {
+    private RuntimeLevelHandle getOrCreateDimension(Identifier identifier, RuntimeLevelConfig config) {
 
         var dimensionId = identifier.withPrefix("workspace_");
-        var fantasyWorld = Fantasy.get(this.server).getOrOpenPersistentWorld(dimensionId, config);
-        this.applyDefaultsToConfig(config, fantasyWorld.asWorld());
+        var fantasyWorld = Fantasy.get(this.server).getOrOpenPersistentLevel(dimensionId, config);
+        this.applyDefaultsToConfig(config, fantasyWorld.asLevel());
         return fantasyWorld;
     }
 
-    private void applyDefaultsToConfig(RuntimeWorldConfig config, ServerLevel level) {
+    private void applyDefaultsToConfig(RuntimeLevelConfig config, ServerLevel level) {
         // TODO: fantasy: make all commands channel through the correct world
-        //        + then serialize the runtimeworldconfig for each workspace
+        //        + then serialize the RuntimeLevelConfig for each workspace
         config.setDifficulty(this.server.overworld().getDifficulty());
         var serverRules = level.getGameRules();
         var workspaceRules = config.getGameRules();
@@ -216,11 +217,11 @@ public final class MapWorkspaceManager extends SavedData {
         });
     }
 
-    private RuntimeWorldConfig createDefaultConfig() {
+    private RuntimeLevelConfig createDefaultConfig() {
         var registries = this.server.registryAccess();
         var generator = new VoidChunkGenerator(registries.lookupOrThrow(Registries.BIOME));
 
-        return new RuntimeWorldConfig()
+        return new RuntimeLevelConfig()
                 .setDimensionType(BuiltinDimensionTypes.OVERWORLD)
                 .setGenerator(generator);
     }
@@ -235,22 +236,38 @@ public final class MapWorkspaceManager extends SavedData {
             return;
         }
 
-        var manager = server.overworld().getDataStorage();
+        var manager = server.getDataStorage();
 
         try {
             // Don't overwrite a migrated file, if one exists
             var path = manager.getDataFile(MapWorkspaceManager.KEY);
-            var file = path.toFile();
-            if (file.isFile()) return;
+            var newFile = path.toFile();
+            if (newFile.isFile()) return;
 
-            var legacyPath = manager.getDataFile(MapWorkspaceManager.LEGACY_KEY);
-            var legacyFile = legacyPath.toFile();
-            if (!legacyFile.isFile()) return;
+            // Yes a hack, but avoids an access widener
+            var dataFolder = manager.getDataFile(MapWorkspaceManager.KEY)
+                    .getParent() // world/data/nucleoid_creator_tools
+                    .getParent(); // world/data
 
-            Files.move(legacyFile, file);
-            CreatorTools.LOGGER.warn("Migrated map workspaces from legacy path '{}' to '{}'", legacyFile, file);
+            var oldPath = dataFolder.resolve(OLD_KEY + ".dat");
+            var oldFile = oldPath.toFile();
+            if (oldFile.isFile()) {
+                Files.createParentDirs(newFile);
+                Files.move(oldFile, newFile);
+                CreatorTools.LOGGER.warn("Migrated map workspaces from old path '{}' to '{}'", oldFile, newFile);
+                return;
+            }
+
+            var veryOldPath = dataFolder.resolve(MapWorkspaceManager.VERY_OLD_KEY + ".dat"); // world/data/plasmid:map_workspaces
+            var veryOldFile = veryOldPath.toFile();
+            if (!veryOldFile.isFile()) return;
+
+            Files.createParentDirs(newFile);
+            Files.move(veryOldFile, newFile);
+            CreatorTools.LOGGER.warn("Migrated map workspaces from very old path '{}' to '{}'", veryOldFile, newFile);
+
         } catch (IOException e) {
-            CreatorTools.LOGGER.warn("Failed to migrate map workspaces from legacy path 'data/plasmid:map_workspaces.nbt'", e);
+            CreatorTools.LOGGER.warn("Failed to migrate map workspaces from legacy path", e);
         }
     }
 }

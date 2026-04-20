@@ -1,7 +1,7 @@
 package xyz.nucleoid.creator_tools.item;
 
-import eu.pb4.polymer.core.api.item.PolymerItemGroupUtils;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
+import eu.pb4.polymer.core.api.item.PolymerCreativeModeTabUtils;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -18,7 +18,7 @@ public final class CreatorToolsItems {
     public static final Item INCLUDE_ENTITY = register("include_entity", IncludeEntityItem::new);
     public static final Item REGION_VISIBILITY_FILTER = register("region_visibility_filter", RegionVisibilityFilterItem::new);
 
-    public static final CreativeModeTab ITEM_GROUP = FabricItemGroup.builder()
+    public static final CreativeModeTab CREATIVE_TAB = FabricCreativeModeTab.builder()
         .title(Component.translatable("text.nucleoid_creator_tools.name"))
         .icon(ADD_REGION::getDefaultInstance)
         .displayItems((context, entries) -> {
@@ -39,6 +39,6 @@ public final class CreatorToolsItems {
     }
 
     public static void register() {
-        PolymerItemGroupUtils.registerPolymerItemGroup(CreatorTools.identifier("general"), ITEM_GROUP);
+        PolymerCreativeModeTabUtils.registerPolymerCreativeModeTab(CreatorTools.identifier("general"), CREATIVE_TAB);
     }
 }

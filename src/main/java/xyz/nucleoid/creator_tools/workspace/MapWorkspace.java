@@ -13,7 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
-import xyz.nucleoid.fantasy.RuntimeWorldHandle;
+import xyz.nucleoid.fantasy.RuntimeLevelHandle;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 
@@ -25,7 +25,7 @@ import java.util.*;
  * It stores regions and arbitrary data destined to be compiled into a {@link MapTemplate}.
  */
 public final class MapWorkspace {
-    private final RuntimeWorldHandle worldHandle;
+    private final RuntimeLevelHandle worldHandle;
 
     private final Identifier identifier;
 
@@ -46,7 +46,7 @@ public final class MapWorkspace {
 
     private final List<WorkspaceListener> listeners = new ArrayList<>();
 
-    public MapWorkspace(RuntimeWorldHandle worldHandle, Identifier identifier, BlockBounds bounds) {
+    public MapWorkspace(RuntimeLevelHandle worldHandle, Identifier identifier, BlockBounds bounds) {
         this.worldHandle = worldHandle;
         this.identifier = identifier;
         this.bounds = bounds;
@@ -205,7 +205,7 @@ public final class MapWorkspace {
         return root;
     }
 
-    public static MapWorkspace deserialize(RuntimeWorldHandle worldHandle, CompoundTag root) {
+    public static MapWorkspace deserialize(RuntimeLevelHandle worldHandle, CompoundTag root) {
         var identifier = Identifier.parse(root.getStringOr("identifier", ""));
         var bounds = BlockBounds.deserialize(root);
 
@@ -249,7 +249,7 @@ public final class MapWorkspace {
 
         this.writeMetadataToTemplate(map);
 
-        var level = this.worldHandle.asWorld();
+        var level = this.worldHandle.asLevel();
 
         this.writeBlocksToTemplate(map, level);
 
@@ -318,10 +318,10 @@ public final class MapWorkspace {
     }
 
     public ServerLevel getLevel() {
-        return this.worldHandle.asWorld();
+        return this.worldHandle.asLevel();
     }
 
-    RuntimeWorldHandle getWorldHandle() {
+    RuntimeLevelHandle getWorldHandle() {
         return this.worldHandle;
     }
 }

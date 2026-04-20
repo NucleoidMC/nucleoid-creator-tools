@@ -1,6 +1,8 @@
 package xyz.nucleoid.creator_tools.item;
 
 import eu.pb4.polymer.core.api.item.PolymerItem;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -11,7 +13,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
-import xyz.nucleoid.packettweaker.PacketContext;
 
 public final class AddRegionItem extends Item implements PolymerItem {
     public AddRegionItem(Properties settings) {
@@ -42,7 +43,7 @@ public final class AddRegionItem extends Item implements PolymerItem {
     }
 
     @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
+    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
         return null;
     }
 }

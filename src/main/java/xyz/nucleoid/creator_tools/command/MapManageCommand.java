@@ -29,7 +29,7 @@ import xyz.nucleoid.creator_tools.MapTemplateExporter;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.ReturnPosition;
 import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
-import xyz.nucleoid.fantasy.RuntimeWorldConfig;
+import xyz.nucleoid.fantasy.RuntimeLevelConfig;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTemplatePlacer;
@@ -121,7 +121,7 @@ public final class MapManageCommand {
     }
     // @formatter:on
 
-    private static int openWorkspace(CommandContext<CommandSourceStack> context, RuntimeWorldConfig worldConfig) throws CommandSyntaxException {
+    private static int openWorkspace(CommandContext<CommandSourceStack> context, RuntimeLevelConfig worldConfig) throws CommandSyntaxException {
         var source = context.getSource();
 
         var givenIdentifier = IdentifierArgument.getId(context, "workspace");
@@ -167,7 +167,7 @@ public final class MapManageCommand {
     private static int openWorkspaceLikeDimension(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         var dimension = DimensionOptionsArgument.get(context, "dimension");
         var reg = context.getSource().getServer().registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE);
-        var worldConfig = new RuntimeWorldConfig()
+        var worldConfig = new RuntimeLevelConfig()
                 .setDimensionType(reg.getOrThrow(reg.getResourceKey(dimension.type().value()).get()))
                 .setGenerator(dimension.generator());
 
@@ -186,7 +186,7 @@ public final class MapManageCommand {
 
         var chunkGenerator = generatorCodec.codec().parse(ops, config).getOrThrow(INVALID_GENERATOR_CONFIG::create);
 
-        var worldConfig = new RuntimeWorldConfig()
+        var worldConfig = new RuntimeLevelConfig()
                 .setDimensionType(BuiltinDimensionTypes.OVERWORLD)
                 .setGenerator(chunkGenerator);
         return MapManageCommand.openWorkspace(context, worldConfig);

@@ -30,15 +30,15 @@ public final class WorkspaceNetworking {
 
     public static void register() {
         // Client <-- Server
-        registerBidirectionalPayloads(PayloadTypeRegistry.playS2C());
-        PayloadTypeRegistry.playS2C().register(WorkspaceEnterS2CPayload.ID, WorkspaceEnterS2CPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(WorkspaceRegionsS2CPayload.ID, WorkspaceRegionsS2CPayload.CODEC);
+        registerBidirectionalPayloads(PayloadTypeRegistry.clientboundPlay());
+        PayloadTypeRegistry.clientboundPlay().register(WorkspaceEnterS2CPayload.ID, WorkspaceEnterS2CPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(WorkspaceRegionsS2CPayload.ID, WorkspaceRegionsS2CPayload.CODEC);
 
         // Client --> Server
-        registerBidirectionalPayloads(PayloadTypeRegistry.playC2S());
-        PayloadTypeRegistry.playC2S().register(OptInC2SPayload.ID, OptInC2SPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(WorkspaceNewC2SPayload.ID, WorkspaceNewC2SPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(WorkspaceRegionAddC2SPayload.ID, WorkspaceRegionAddC2SPayload.CODEC);
+        registerBidirectionalPayloads(PayloadTypeRegistry.serverboundPlay());
+        PayloadTypeRegistry.serverboundPlay().register(OptInC2SPayload.ID, OptInC2SPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(WorkspaceNewC2SPayload.ID, WorkspaceNewC2SPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(WorkspaceRegionAddC2SPayload.ID, WorkspaceRegionAddC2SPayload.CODEC);
 
         // Receivers
         ServerPlayNetworking.registerGlobalReceiver(OptInC2SPayload.ID, (payload, context) ->
