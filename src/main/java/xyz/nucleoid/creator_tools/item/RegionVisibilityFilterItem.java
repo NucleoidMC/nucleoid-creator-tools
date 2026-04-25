@@ -19,15 +19,17 @@ import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import xyz.nucleoid.creator_tools.component.CreatorToolsDataComponentTypes;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.editor.ServersideWorkspaceEditor;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+@NullMarked
 public final class RegionVisibilityFilterItem extends Item implements PolymerItem {
     public RegionVisibilityFilterItem(Properties settings) {
         super(settings);
@@ -42,7 +44,7 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
         var stack = player.getItemInHand(hand);
 
         if (player instanceof ServerPlayer serverPlayer) {
-            var workspaceManager = MapWorkspaceManager.get(world.getServer());
+            var workspaceManager = MapWorkspaceManager.get(Objects.requireNonNull(world.getServer()));
             var editor = workspaceManager.getEditorFor(serverPlayer);
 
             var regions = getRegions(stack);
@@ -62,7 +64,7 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
     }
 
     @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+    public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
         return null;
     }
 

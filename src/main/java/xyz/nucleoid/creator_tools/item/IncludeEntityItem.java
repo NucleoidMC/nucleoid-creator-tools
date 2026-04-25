@@ -15,8 +15,13 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.UseOnContext;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 
+import java.util.Objects;
+
+@NullMarked
 public final class IncludeEntityItem extends Item implements PolymerItem {
     public IncludeEntityItem(Properties settings) {
         super(settings);
@@ -31,7 +36,7 @@ public final class IncludeEntityItem extends Item implements PolymerItem {
     public InteractionResult interactLivingEntity(ItemStack stack, Player user, LivingEntity entity, InteractionHand hand) {
         var world = user.level();
         if (!world.isClientSide() && user instanceof ServerPlayer serverUser) {
-            var workspaceManager = MapWorkspaceManager.get(world.getServer());
+            var workspaceManager = MapWorkspaceManager.get(Objects.requireNonNull(world.getServer()));
 
             var workspace = workspaceManager.byDimension(world.dimension());
             if (workspace != null) {
@@ -71,7 +76,7 @@ public final class IncludeEntityItem extends Item implements PolymerItem {
     }
 
     @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+    public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
         return null;
     }
 }

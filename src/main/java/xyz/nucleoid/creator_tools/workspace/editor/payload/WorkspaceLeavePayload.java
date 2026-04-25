@@ -4,8 +4,10 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.NullMarked;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 
+@NullMarked
 public record WorkspaceLeavePayload(Identifier workspaceId) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<WorkspaceLeavePayload> ID = WorkspaceNetworking.id("workspace/leave");
 

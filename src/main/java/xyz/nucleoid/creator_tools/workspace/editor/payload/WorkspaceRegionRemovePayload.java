@@ -4,8 +4,10 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import org.jspecify.annotations.NullMarked;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 
+@NullMarked
 public record WorkspaceRegionRemovePayload(int regionId) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<WorkspaceRegionRemovePayload> ID = WorkspaceNetworking.id("workspace/region/remove");
 

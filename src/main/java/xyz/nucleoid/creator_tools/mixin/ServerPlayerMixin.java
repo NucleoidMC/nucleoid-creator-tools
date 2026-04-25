@@ -27,6 +27,7 @@ import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 
 import java.util.Map;
+import java.util.Objects;
 
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerMixin extends Player implements WorkspaceTraveler {
@@ -44,16 +45,16 @@ public abstract class ServerPlayerMixin extends Player implements WorkspaceTrave
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
-    private void writeData(ValueOutput view, CallbackInfo ci) {
-        var creatorTools = view.child(CreatorTools.ID);
+    private void writeData(ValueOutput output, CallbackInfo ci) {
+        var creatorTools = output.child(CreatorTools.ID);
 
         creatorTools.store("workspace_return", ReturnPosition.MAP_CODEC, this.workspaceReturns);
         creatorTools.storeNullable("leave_return", ReturnPosition.CODEC, this.leaveReturn);
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
-    private void readData(ValueInput view, CallbackInfo ci) {
-        var creatorTools = view.childOrEmpty(CreatorTools.ID);
+    private void readData(ValueInput input, CallbackInfo ci) {
+        var creatorTools = input.childOrEmpty(CreatorTools.ID);
 
         this.workspaceReturns.clear();
 
@@ -63,8 +64,8 @@ public abstract class ServerPlayerMixin extends Player implements WorkspaceTrave
     }
 
     @Inject(method = "restoreFrom", at = @At("RETURN"))
-    private void copyFrom(ServerPlayer from, boolean alive, CallbackInfo ci) {
-        var fromTraveler = (ServerPlayerMixin) (Object) from;
+    private void copyFrom(ServerPlayer oldPlayer, boolean restoreAll, CallbackInfo ci) {
+        var fromTraveler = Objects.requireNonNull((ServerPlayerMixin) (Object) oldPlayer);
         this.leaveReturn = fromTraveler.leaveReturn;
         this.workspaceReturns.clear();
         this.workspaceReturns.putAll(fromTraveler.workspaceReturns);
@@ -72,8 +73,8 @@ public abstract class ServerPlayerMixin extends Player implements WorkspaceTrave
     }
 
     @Inject(method = "teleport", at = @At("HEAD"))
-    private void onTeleport(TeleportTransition target, CallbackInfoReturnable<ServerPlayer> ci) {
-        this.onDimensionChange(target.newLevel());
+    private void onTeleport(TeleportTransition transition, CallbackInfoReturnable<ServerPlayer> ci) {
+        this.onDimensionChange(transition.newLevel());
     }
 
     @Unique

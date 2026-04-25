@@ -17,6 +17,7 @@ import net.minecraft.world.level.gamerules.GameRuleTypeVisitor;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 import xyz.nucleoid.creator_tools.CreatorTools;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditor;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceEditorManager;
@@ -56,7 +57,8 @@ public final class MapWorkspaceManager extends SavedData {
             return nbt;
         });
 
-        var type = new SavedDataType<MapWorkspaceManager>(
+        // Suppress the dataFixType being null - it can be null
+        @SuppressWarnings("DataFlowIssue") var type = new SavedDataType<>(
                 KEY,
                 () -> new MapWorkspaceManager(server),
                 codec,
@@ -200,7 +202,7 @@ public final class MapWorkspaceManager extends SavedData {
 
         serverRules.visitGameRuleTypes(new GameRuleTypeVisitor() {
             @Override
-            public void visitInteger(GameRule<Integer> key) {
+            public void visitInteger(@NonNull GameRule<Integer> key) {
                 var value = serverRules.get(key);
                 if (!workspaceRules.contains(key)) {
                     workspaceRules.set(key, value);
@@ -208,7 +210,7 @@ public final class MapWorkspaceManager extends SavedData {
             }
 
             @Override
-            public void visitBoolean(GameRule<Boolean> key) {
+            public void visitBoolean(@NonNull GameRule<Boolean> key) {
                 var value = serverRules.get(key);
                 if (!workspaceRules.contains(key)) {
                     workspaceRules.set(key, value);

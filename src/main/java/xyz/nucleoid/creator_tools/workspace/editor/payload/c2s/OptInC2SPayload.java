@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import org.jspecify.annotations.NonNull;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 
 public record OptInC2SPayload(int protocolVersion) implements CustomPacketPayload {
@@ -13,7 +14,7 @@ public record OptInC2SPayload(int protocolVersion) implements CustomPacketPayloa
             .map(OptInC2SPayload::new, OptInC2SPayload::protocolVersion);
 
     @Override
-    public CustomPacketPayload.Type<OptInC2SPayload> type() {
+    public CustomPacketPayload.@NonNull Type<OptInC2SPayload> type() {
         return ID;
     }
 }

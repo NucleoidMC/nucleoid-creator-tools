@@ -168,7 +168,7 @@ public final class MapManageCommand {
         var dimension = DimensionOptionsArgument.get(context, "dimension");
         var reg = context.getSource().getServer().registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE);
         var worldConfig = new RuntimeLevelConfig()
-                .setDimensionType(reg.getOrThrow(reg.getResourceKey(dimension.type().value()).get()))
+                .setDimensionType(reg.getOrThrow(reg.getResourceKey(dimension.type().value()).orElseThrow()))
                 .setGenerator(dimension.generator());
 
         return MapManageCommand.openWorkspace(context, worldConfig);
@@ -310,7 +310,7 @@ public final class MapManageCommand {
         var registries = source.registryAccess();
         var future = MapTemplateExporter.saveToExport(template, workspace.getIdentifier(), registries);
 
-        future.handle((v, throwable) -> {
+        future.handle((_, throwable) -> {
             if (throwable == null) {
                 source.sendSuccess(() -> Component.translatableEscape("text.nucleoid_creator_tools.map.export.success", workspace.getIdentifier()), false);
             } else {

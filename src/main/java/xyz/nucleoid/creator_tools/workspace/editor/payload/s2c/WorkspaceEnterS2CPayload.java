@@ -6,9 +6,11 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.NullMarked;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 import xyz.nucleoid.map_templates.BlockBounds;
 
+@NullMarked
 public record WorkspaceEnterS2CPayload(Identifier workspaceId, BlockBounds bounds, Identifier worldId, CompoundTag data) implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<WorkspaceEnterS2CPayload> ID = WorkspaceNetworking.id("workspace/enter");
 

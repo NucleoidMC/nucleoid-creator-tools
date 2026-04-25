@@ -12,8 +12,13 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 
+import java.util.Objects;
+
+@NullMarked
 public final class AddRegionItem extends Item implements PolymerItem {
     public AddRegionItem(Properties settings) {
         super(settings);
@@ -26,7 +31,7 @@ public final class AddRegionItem extends Item implements PolymerItem {
         }
 
         if (player instanceof ServerPlayer serverPlayer) {
-            var workspaceManager = MapWorkspaceManager.get(world.getServer());
+            var workspaceManager = MapWorkspaceManager.get(Objects.requireNonNull(world.getServer()));
             var editor = workspaceManager.getEditorFor(serverPlayer);
 
             if (editor != null && editor.useRegionItem()) {
@@ -43,7 +48,7 @@ public final class AddRegionItem extends Item implements PolymerItem {
     }
 
     @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
+    public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
         return null;
     }
 }
