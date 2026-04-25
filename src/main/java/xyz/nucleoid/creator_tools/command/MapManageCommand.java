@@ -312,7 +312,7 @@ public final class MapManageCommand {
 
         future.handle((v, throwable) -> {
             if (throwable == null) {
-                source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.export.success", Component.translationArg(workspace.getIdentifier())), false);
+                source.sendSuccess(() -> Component.translatableEscape("text.nucleoid_creator_tools.map.export.success", workspace.getIdentifier()), false);
             } else {
                 CreatorTools.LOGGER.error("Failed to export map to '{}'", workspace.getIdentifier(), throwable);
                 source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.export.error"));
