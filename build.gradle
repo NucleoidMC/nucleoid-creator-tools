@@ -58,7 +58,7 @@ java {
 
 jar {
   from("LICENSE") {
-    rename { "${it}_${project.archivesBaseName}"}
+    rename { "${it}_nucleoid_creator_tools"}
   }
 }
 
@@ -70,7 +70,7 @@ if (System.getenv("MODRINTH")) {
     versionType = "release"
     uploadFile = jar // This links to a task that builds your mod jar and sets "uploadFile" to the mod jar.
     gameVersions = [((String) project.minecraft_version)]
-    loaders = ["fabric", "quilt"]
+    loaders = ["fabric"]
   }
 
   jar {
