@@ -1,58 +1,61 @@
 package xyz.nucleoid.creator_tools.item;
 
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
-import org.jetbrains.annotations.Nullable;
-
 import eu.pb4.polymer.core.api.item.PolymerItem;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.DyedColorComponent;
-import net.minecraft.component.type.TooltipDisplayComponent;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.World;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
 import xyz.nucleoid.creator_tools.component.CreatorToolsDataComponentTypes;
 import xyz.nucleoid.creator_tools.workspace.MapWorkspaceManager;
 import xyz.nucleoid.creator_tools.workspace.editor.ServersideWorkspaceEditor;
-import xyz.nucleoid.packettweaker.PacketContext;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
+@NullMarked
 public final class RegionVisibilityFilterItem extends Item implements PolymerItem {
-    public RegionVisibilityFilterItem(Settings settings) {
+    public RegionVisibilityFilterItem(Properties settings) {
         super(settings);
     }
 
     @Override
-    public ActionResult use(World world, PlayerEntity player, Hand hand) {
-        if (world.isClient()) {
+    public InteractionResult use(Level world, Player player, InteractionHand hand) {
+        if (world.isClientSide()) {
             return super.use(world, player, hand);
         }
 
-        var stack = player.getStackInHand(hand);
+        var stack = player.getItemInHand(hand);
 
-        if (player instanceof ServerPlayerEntity serverPlayer) {
-            var workspaceManager = MapWorkspaceManager.get(serverPlayer.getServer());
+        if (player instanceof ServerPlayer serverPlayer) {
+            var workspaceManager = MapWorkspaceManager.get(Objects.requireNonNull(world.getServer()));
             var editor = workspaceManager.getEditorFor(serverPlayer);
 
             var regions = getRegions(stack);
-            Predicate<String> filter = regions == null || player.isSneaking() ? ServersideWorkspaceEditor.NO_FILTER : regions::contains;
+            Predicate<String> filter = regions == null || player.isShiftKeyDown() ? ServersideWorkspaceEditor.NO_FILTER : regions::contains;
             
             if (editor != null && editor.applyFilter(filter)) {
-                return ActionResult.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
 
-        return ActionResult.PASS;
+        return InteractionResult.PASS;
     }
 
     @Override
@@ -61,32 +64,33 @@ public final class RegionVisibilityFilterItem extends Item implements PolymerIte
     }
 
     @Override
-    public Identifier getPolymerItemModel(ItemStack stack, PacketContext context) {
+    public @Nullable Identifier getPolymerItemModel(ItemStack stack, PacketContext context, HolderLookup.Provider lookup) {
         return null;
     }
 
     @Override
-    public ItemStack getPolymerItemStack(ItemStack stack, TooltipType tooltipType, PacketContext context) {
-        var displayStack = PolymerItem.super.getPolymerItemStack(stack, tooltipType, context);
+    public ItemStack getPolymerItemStack(ItemStack stack, TooltipFlag tooltipType, PacketContext context, HolderLookup.Provider lookup) {
+        var displayStack = PolymerItem.super.getPolymerItemStack(stack, tooltipType, context, lookup);
         var regions = getRegions(stack);
 
         if (regions != null && !regions.isEmpty()) {
-            var region = regions.get(0);
+            var region = regions.getFirst();
 
-            displayStack.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(ServersideWorkspaceEditor.colorForRegionBorder(region)));
-            displayStack.apply(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplayComponent.DEFAULT, display -> display.with(DataComponentTypes.DYED_COLOR, true));
+            displayStack.set(DataComponents.DYED_COLOR, new DyedItemColor(ServersideWorkspaceEditor.colorForRegionBorder(region)));
+            displayStack.update(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT, display -> display.withHidden(DataComponents.DYED_COLOR, true));
         }
 
         return displayStack;
     }
 
+    @SuppressWarnings("deprecation") // not deprecated
     @Override
-    public void appendTooltip(ItemStack stack, TooltipContext context, TooltipDisplayComponent displayComponent, Consumer<Text> textConsumer, TooltipType type) {
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay displayComponent, Consumer<Component> textConsumer, TooltipFlag type) {
         var regions = getRegions(stack);
 
         if (regions != null) {
             for (var region : regions) {
-                textConsumer.accept(Text.literal(region).formatted(Formatting.GRAY));
+                textConsumer.accept(Component.literal(region).withStyle(ChatFormatting.GRAY));
             }
         }
     }

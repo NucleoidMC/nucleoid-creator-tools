@@ -2,12 +2,13 @@
   "required": true,
   "minVersion": "0.8",
   "package": "xyz.nucleoid.creator_tools.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "ServerPlayerEntityMixin",
-    "ServerWorldMixin"
+    "ServerLevelMixin",
+    "ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixinextras": {"minVersion": "0.5.4"}
 }

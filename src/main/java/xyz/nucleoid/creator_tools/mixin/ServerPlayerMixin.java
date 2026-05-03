@@ -2,21 +2,20 @@ package xyz.nucleoid.creator_tools.mixin;
 
 import com.mojang.authlib.GameProfile;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.RegistryKey;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.storage.ReadView;
-import net.minecraft.storage.WriteView;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.TeleportTarget;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -28,33 +27,34 @@ import xyz.nucleoid.creator_tools.workspace.WorkspaceTraveler;
 import xyz.nucleoid.creator_tools.workspace.editor.WorkspaceNetworking;
 
 import java.util.Map;
+import java.util.Objects;
 
-@Mixin(ServerPlayerEntity.class)
-public abstract class ServerPlayerEntityMixin extends PlayerEntity implements WorkspaceTraveler {
+@Mixin(ServerPlayer.class)
+public abstract class ServerPlayerMixin extends Player implements WorkspaceTraveler {
     @Shadow
     @Final
-    public MinecraftServer server;
+    private MinecraftServer server;
 
-    private ReturnPosition leaveReturn;
-    private final Map<RegistryKey<World>, ReturnPosition> workspaceReturns = new Reference2ObjectOpenHashMap<>();
+    @Unique private ReturnPosition leaveReturn;
+    @Unique private final Map<ResourceKey<Level>, ReturnPosition> workspaceReturns = new Reference2ObjectOpenHashMap<>();
 
-    private int creatorToolsProtocolVersion = WorkspaceNetworking.NO_PROTOCOL_VERSION;
+    @Unique private int creatorToolsProtocolVersion = WorkspaceNetworking.NO_PROTOCOL_VERSION;
 
-    private ServerPlayerEntityMixin(World world, GameProfile gameProfile) {
-        super(world, gameProfile);
+    private ServerPlayerMixin(Level level, GameProfile gameProfile) {
+        super(level, gameProfile);
     }
 
-    @Inject(method = "writeCustomData", at = @At("RETURN"))
-    private void writeData(WriteView view, CallbackInfo ci) {
-        var creatorTools = view.get(CreatorTools.ID);
+    @Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
+    private void writeData(ValueOutput output, CallbackInfo ci) {
+        var creatorTools = output.child(CreatorTools.ID);
 
-        creatorTools.put("workspace_return", ReturnPosition.MAP_CODEC, this.workspaceReturns);
-        creatorTools.putNullable("leave_return", ReturnPosition.CODEC, this.leaveReturn);
+        creatorTools.store("workspace_return", ReturnPosition.MAP_CODEC, this.workspaceReturns);
+        creatorTools.storeNullable("leave_return", ReturnPosition.CODEC, this.leaveReturn);
     }
 
-    @Inject(method = "readCustomData", at = @At("RETURN"))
-    private void readData(ReadView view, CallbackInfo ci) {
-        var creatorTools = view.getReadView(CreatorTools.ID);
+    @Inject(method = "readAdditionalSaveData", at = @At("RETURN"))
+    private void readData(ValueInput input, CallbackInfo ci) {
+        var creatorTools = input.childOrEmpty(CreatorTools.ID);
 
         this.workspaceReturns.clear();
 
@@ -63,23 +63,24 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
         this.leaveReturn = creatorTools.read("leave_return", ReturnPosition.CODEC).orElse(null);
     }
 
-    @Inject(method = "copyFrom", at = @At("RETURN"))
-    private void copyFrom(ServerPlayerEntity from, boolean alive, CallbackInfo ci) {
-        var fromTraveler = (ServerPlayerEntityMixin) (Object) from;
+    @Inject(method = "restoreFrom", at = @At("RETURN"))
+    private void copyFrom(ServerPlayer oldPlayer, boolean restoreAll, CallbackInfo ci) {
+        var fromTraveler = Objects.requireNonNull((ServerPlayerMixin) (Object) oldPlayer);
         this.leaveReturn = fromTraveler.leaveReturn;
         this.workspaceReturns.clear();
         this.workspaceReturns.putAll(fromTraveler.workspaceReturns);
         this.creatorToolsProtocolVersion = fromTraveler.creatorToolsProtocolVersion;
     }
 
-    @Inject(method = "teleportTo", at = @At("HEAD"))
-    private void onTeleport(TeleportTarget target, CallbackInfoReturnable<ServerPlayerEntity> ci) {
-        this.onDimensionChange(target.world());
+    @Inject(method = "teleport", at = @At("HEAD"))
+    private void onTeleport(TeleportTransition transition, CallbackInfoReturnable<ServerPlayer> ci) {
+        this.onDimensionChange(transition.newLevel());
     }
 
-    private void onDimensionChange(ServerWorld targetWorld) {
-        var sourceDimension = this.getWorld().getRegistryKey();
-        var targetDimension = targetWorld.getRegistryKey();
+    @Unique
+    private void onDimensionChange(ServerLevel targetLevel) {
+        var sourceDimension = this.level().dimension();
+        var targetDimension = targetLevel.dimension();
 
         var workspaceManager = MapWorkspaceManager.get(this.server);
         if (workspaceManager.isWorkspace(sourceDimension)) {
@@ -91,7 +92,7 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Wo
 
     @Nullable
     @Override
-    public ReturnPosition getReturnFor(RegistryKey<World> dimension) {
+    public ReturnPosition getReturnFor(ResourceKey<Level> dimension) {
         return this.workspaceReturns.get(dimension);
     }
 

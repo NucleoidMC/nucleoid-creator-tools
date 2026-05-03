@@ -1,20 +1,20 @@
 package xyz.nucleoid.creator_tools.component;
 
 import eu.pb4.polymer.core.api.other.PolymerComponent;
-import net.minecraft.component.ComponentType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import xyz.nucleoid.creator_tools.CreatorTools;
 
 public final class CreatorToolsDataComponentTypes {
-    public static final ComponentType<RegionVisibilityFilterComponent> REGION_VISIBILITY_FILTER = register("region_visibility_filter", ComponentType.<RegionVisibilityFilterComponent>builder()
-            .codec(RegionVisibilityFilterComponent.CODEC)
-            .packetCodec(RegionVisibilityFilterComponent.PACKET_CODEC)
-            .cache()
+    public static final DataComponentType<RegionVisibilityFilterComponent> REGION_VISIBILITY_FILTER = register("region_visibility_filter", DataComponentType.<RegionVisibilityFilterComponent>builder()
+            .persistent(RegionVisibilityFilterComponent.CODEC)
+            .networkSynchronized(RegionVisibilityFilterComponent.PACKET_CODEC)
+            .cacheEncoding()
             .build());
 
-    private static <T> ComponentType<T> register(String path, ComponentType<T> type) {
-        return Registry.register(Registries.DATA_COMPONENT_TYPE, CreatorTools.identifier(path), type);
+    private static <T> DataComponentType<T> register(String path, DataComponentType<T> type) {
+        return Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, CreatorTools.identifier(path), type);
     }
 
     public static void register() {

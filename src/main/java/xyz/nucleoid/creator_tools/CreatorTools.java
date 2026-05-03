@@ -4,9 +4,9 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import net.minecraft.util.Identifier;
 import xyz.nucleoid.creator_tools.command.MapManageCommand;
 import xyz.nucleoid.creator_tools.command.MapMetadataCommand;
 import xyz.nucleoid.creator_tools.component.CreatorToolsDataComponentTypes;
@@ -31,14 +31,12 @@ public final class CreatorTools implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTED.register(MapWorkspaceManager::migratePath);
 
-        ServerTickEvents.START_SERVER_TICK.register(server -> {
-            MapWorkspaceManager.get(server).tick();
-        });
+        ServerTickEvents.START_SERVER_TICK.register(server -> MapWorkspaceManager.get(server).tick());
 
         WorkspaceNetworking.register();
     }
 
     public static Identifier identifier(String path) {
-        return Identifier.of(ID, path);
+        return Identifier.fromNamespaceAndPath(ID, path);
     }
 }
