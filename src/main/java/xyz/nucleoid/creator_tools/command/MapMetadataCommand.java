@@ -10,6 +10,7 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.datafixers.util.Either;
+import com.mojang.datafixers.util.Pair;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -25,7 +26,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.PermissionLevel;
-import net.minecraft.util.Tuple;
+
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
@@ -511,10 +512,10 @@ public final class MapMetadataCommand {
         var map = getWorkspaceForSource(source);
         var type = getEntityType(context);
 
-        if (!map.addEntityType(type.getB())) {
-            source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.already_present", Component.translationArg(type.getA()), Component.translationArg(map.getIdentifier())));
+        if (!map.addEntityType(type.getSecond())) {
+            source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.already_present", Component.translationArg(type.getFirst()), Component.translationArg(map.getIdentifier())));
         } else {
-            source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.success", Component.translationArg(type.getA()), Component.translationArg(map.getIdentifier())), false);
+            source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.add.success", Component.translationArg(type.getFirst()), Component.translationArg(map.getIdentifier())), false);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -525,10 +526,10 @@ public final class MapMetadataCommand {
         var map = getWorkspaceForSource(source);
         var type = getEntityType(context);
 
-        if (!map.removeEntityType(type.getB())) {
-            source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.not_present", Component.translationArg(type.getA()), Component.translationArg(map.getIdentifier())));
+        if (!map.removeEntityType(type.getSecond())) {
+            source.sendFailure(Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.not_present", Component.translationArg(type.getFirst()), Component.translationArg(map.getIdentifier())));
         } else {
-            source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.success", Component.translationArg(type.getA()), Component.translationArg(map.getIdentifier())), false);
+            source.sendSuccess(() -> Component.translatable("text.nucleoid_creator_tools.map.region.entity.filter.type.remove.success", Component.translationArg(type.getFirst()), Component.translationArg(map.getIdentifier())), false);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -663,10 +664,10 @@ public final class MapMetadataCommand {
         }
     }
 
-    private static Tuple<Identifier, EntityType<?>> getEntityType(CommandContext<CommandSourceStack> context) throws
+    private static Pair<Identifier, EntityType<?>> getEntityType(CommandContext<CommandSourceStack> context) throws
             CommandSyntaxException {
         var id = IdentifierArgument.getId(context, "entity_type");
-        return new Tuple<>(id, BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElseThrow(() -> ENTITY_TYPE_NOT_FOUND.create(id)));
+        return new Pair<>(id, BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElseThrow(() -> ENTITY_TYPE_NOT_FOUND.create(id)));
     }
 
     private static SuggestionProvider<CommandSourceStack> entityTypeSuggestions() {
